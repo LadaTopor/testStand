@@ -19,7 +19,7 @@ func main() {
 	svc := service.NewService(db)
 
 	// Routes
-	e.POST("/payment", svc.CreatePaymentTransaction)
+	e.POST("/payout", svc.CreatePayoutTransaction)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))

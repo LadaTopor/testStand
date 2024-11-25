@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"testStand/internal/acquirer/helper"
@@ -58,7 +57,6 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, meth
 
 	body, err := json.Marshal(payload)
 	if err != nil {
-		fmt.Println("HERE??????????///")
 		return err
 	}
 

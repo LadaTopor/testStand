@@ -27,7 +27,7 @@ func NewService(
 	}
 }
 
-func (s *Service) CreatePaymentTransaction(c echo.Context) error {
+func (s *Service) CreatePayoutTransaction(c echo.Context) error {
 	req := &Request{}
 	err := c.Bind(req)
 	if err != nil {
@@ -37,7 +37,7 @@ func (s *Service) CreatePaymentTransaction(c echo.Context) error {
 	txn := &models.Transaction{
 		TxnId:          int64(uuid.New().ID()),
 		ParentTxn:      nil,
-		TxnTypeId:      models.Transaction_PAYMENT,
+		TxnTypeId:      models.Transaction_PAYOUT,
 		PayMethodId:    req.PaymentData.Type,
 		Customer:       &req.Customer,
 		ChnName:        &req.GtwName,
