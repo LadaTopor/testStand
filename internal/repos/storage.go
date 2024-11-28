@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/shopspring/decimal"
@@ -56,5 +57,9 @@ type Channel struct {
 	Name     string
 	IsActive bool
 	GtwId    int32
-	Params   string
+	Params   Params
+}
+
+type Params struct {
+	Credentials json.RawMessage `json:"credentials"`
 }

@@ -58,7 +58,6 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 		}
 		return nil, err
 	}
-
 	callbackUrl := "" // TODO ЗАПОЛНИТЬ
 
 	acq, err := f.create(ctx, txn, gateway, channel.Params, callbackUrl)
@@ -66,7 +65,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 }
 
 // create
-func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *repos.Gateway, channelParams string, callbackUrl string) (acquirer.Acquirer, error) {
+func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *repos.Gateway, channelParams repos.Params, callbackUrl string) (acquirer.Acquirer, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var err error
@@ -83,21 +82,21 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 	case AURIS:
 		var chParams auris.ChannelParams
 		var gtwParams auris.GatewayParams
-		if err = f.unmarshalParams(gateway.ParamsJson, channelParams, &gtwParams, &chParams); err != nil {
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
 			return nil, err
 		}
 		acq = auris.NewAcquirer(ctx, f.dbClient, chParams, gtwParams, callbackUrl)
 	case SEQUOIA:
 		var chParams sequoia.ChannelParams
 		var gtwParams sequoia.GatewayParams
-		if err = f.unmarshalParams(gateway.ParamsJson, channelParams, &gtwParams, &chParams); err != nil {
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
 			return nil, err
 		}
 		acq = sequoia.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
 	case PAYLINK:
 		var chParams paylink.ChannelParams
 		var gtwParams paylink.GatewayParams
-		if err = f.unmarshalParams(gateway.ParamsJson, channelParams, &gtwParams, &chParams); err != nil {
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
 			return nil, err
 		}
 		acq = paylink.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
@@ -111,8 +110,8 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 }
 
 // unmarshalParams
-func (f *Factory) unmarshalParams(gatewayParamsJson string, channelParamsJson string, gatewayParams any, channelParams any) error {
-	if err := json.Unmarshal([]byte(channelParamsJson), channelParams); err != nil {
+func (f *Factory) unmarshalParams(gatewayParamsJson string, channelParamsJson []byte, gatewayParams any, channelParams any) error {
+	if err := json.Unmarshal(channelParamsJson, channelParams); err != nil {
 		return err
 	}
 	if err := json.Unmarshal([]byte(gatewayParamsJson), gatewayParams); err != nil {

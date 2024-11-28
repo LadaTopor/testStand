@@ -3,6 +3,7 @@ package repos
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	_ "github.com/lib/pq"
 )
@@ -38,6 +39,7 @@ func (db *Repo) GetGateway(ctx context.Context, gatewayId string) (*Gateway, err
 // GetChannel
 func (db *Repo) GetChannel(ctx context.Context, channelId string) (*Channel, error) {
 	channel := new(Channel)
+	var channelParams []byte
 	row := db.pgClient.QueryRow(
 		`SELECT
     	chn_id,
@@ -47,7 +49,12 @@ func (db *Repo) GetChannel(ctx context.Context, channelId string) (*Channel, err
     	chn_params_jsonb
 		FROM channel
 		WHERE chn_name = $1 AND chn_is_active=true`, channelId)
-	err := row.Scan(&channel.Id, &channel.Name, &channel.IsActive, &channel.GtwId, &channel.Params)
+	err := row.Scan(&channel.Id, &channel.Name, &channel.IsActive, &channel.GtwId, &channelParams)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(channelParams, &channel.Params)
 	if err != nil {
 		return nil, err
 	}
