@@ -39,6 +39,7 @@ func (s *Service) CreatePayoutTransaction(c echo.Context) error {
 		ParentTxn:      nil,
 		TxnTypeId:      models.Transaction_PAYOUT,
 		PayMethodId:    req.PaymentData.Type,
+		PaymentData:    req.PaymentData,
 		Customer:       &req.Customer,
 		ChnName:        &req.GtwName,
 		GtwName:        &req.GtwName,
