@@ -1,9 +1,9 @@
 package asupay
 
 import (
-	"context"                                // встроенный пакет
-	"fmt"                                    // встроенный пакет
-	"log"                                    // встроенный пакет
+	"context" // встроенный пакет
+	"fmt"     // встроенный пакет
+	// встроенный пакет
 	"strconv"                                // встроенный пакет
 	"testStand/internal/acquirer"            // наш импорт
 	"testStand/internal/acquirer/asupay/api" // наш импорт
@@ -41,7 +41,6 @@ const (
 
 // NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams *ChannelParams, gatewayParams *GatewayParams, callbackUrl string) *Acquirer {
-	log.Println(channelParams.ApiKey)
 	return &Acquirer{
 		channelParams: channelParams,
 		api:           api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, gatewayParams.Transport.Timeout),
