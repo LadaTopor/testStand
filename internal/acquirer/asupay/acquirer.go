@@ -10,13 +10,11 @@ import (
 	"testStand/internal/acquirer/helper"     // наш импорт
 	"testStand/internal/models"              // наш импорт
 	"testStand/internal/repos"               // наш импорт
-
-	"github.com/shopspring/decimal" // внешний импорт
+	// внешний импорт
 )
 
 type GatewayParams struct {
-	Transport            Transport        `json:"transport"`
-	PercentageDifference *decimal.Decimal `json:"percentage_difference"`
+	Transport Transport `json:"transport"`
 }
 
 type Transport struct {
