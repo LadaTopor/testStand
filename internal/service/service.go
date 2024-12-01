@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -52,7 +53,7 @@ func (s *Service) CreatePayoutTransaction(c echo.Context) error {
 		TxnStatusId:    models.Transaction_NEW,
 		TxnUpdatedAt:   time.Time{},
 	}
-
+	fmt.Println("Request Data:", txn)
 	ctx := context.Background()
 	s.process(ctx, txn)
 
@@ -78,11 +79,9 @@ func (s *Service) CreatePayoutTransaction(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
-// process
 func (s *Service) process(ctx context.Context, txn *models.Transaction) {
 	logger, _ := zap.NewDevelopment()
 
-	// Choose acquirer by gateway
 	acq, err := s.selectAcquirer(ctx, txn)
 	if err != nil {
 		logger.Error("Error creating acquirer for the gateway", zap.Error(err))
@@ -94,7 +93,6 @@ func (s *Service) process(ctx context.Context, txn *models.Transaction) {
 		}
 	}
 
-	// Handler transaction
 	handler, _ := txnhandler.NewHandler(s.dbClient, acq)
 	handler.HandleTxn(ctx, txn)
 }
