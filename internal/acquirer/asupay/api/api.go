@@ -18,13 +18,7 @@ type Client struct {
 }
 
 const (
-	Reconciled = "executed"
-	Decline    = "cancelled"
-)
-
-const (
 	payout = "/api/v1/withdraw"
-	status = "status"
 )
 
 func NewClient(ctx context.Context, baseAddress, apiKey string, timeout *int) *Client {
@@ -67,7 +61,6 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, sign
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Sign", sign)
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	resp, err := c.client.Do(req)

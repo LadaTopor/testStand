@@ -31,11 +31,10 @@ type ChannelParams struct {
 }
 
 type Acquirer struct {
-	api                  *api.Client
-	dbClient             *repos.Repo
-	channelParams        *ChannelParams
-	callbackUrl          string
-	percentageDifference *decimal.Decimal
+	api           *api.Client
+	dbClient      *repos.Repo
+	channelParams *ChannelParams
+	callbackUrl   string
 }
 
 const (
@@ -47,11 +46,10 @@ const (
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams *ChannelParams, gatewayParams *GatewayParams, callbackUrl string) *Acquirer {
 	log.Println(channelParams.ApiKey)
 	return &Acquirer{
-		channelParams:        channelParams,
-		api:                  api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, gatewayParams.Transport.Timeout),
-		dbClient:             db,
-		callbackUrl:          callbackUrl,
-		percentageDifference: gatewayParams.PercentageDifference,
+		channelParams: channelParams,
+		api:           api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, gatewayParams.Transport.Timeout),
+		dbClient:      db,
+		callbackUrl:   callbackUrl,
 	}
 
 }
