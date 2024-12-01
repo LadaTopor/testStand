@@ -1,17 +1,14 @@
 package api
 
 import (
-	"bytes"
-	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
-	"net/http/httputil"
+	"bytes"         // встроенный пакет
+	"context"       // встроенный пакет
+	"crypto/sha256" // встроенный пакет
+	"encoding/hex"  // встроенный пакет
+	"encoding/json" // встроенный пакет
+	"net/http"      // встроенный пакет
 
-	"testStand/internal/acquirer/helper"
+	"testStand/internal/acquirer/helper" // наш импорт
 )
 
 type Client struct {
@@ -42,7 +39,6 @@ func NewClient(ctx context.Context, baseAddress, apiKey string, timeout *int) *C
 // MakePayout
 func (c *Client) MakePayout(ctx context.Context, request *Request, secretKey string) (*Response, error) {
 	sign := CreateSign(request.MerchId + request.CardData.CardNumber + request.Amount + secretKey)
-	fmt.Println("--------SIGN1", sign)
 
 	resp := &Response{}
 	err := c.makeRequest(ctx, request, resp, sign, payout)
@@ -65,21 +61,14 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, sign
 		return err
 	}
 
-	fmt.Println("-------Endpoint", endpoint)
-
 	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, endpoint), bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
 
-	log.Println("------API", c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Sign", sign)
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-
-	r, _ := httputil.DumpRequest(req, true)
-	fmt.Println(string(r))
-	fmt.Println("----------------------------------------------------------------------------------")
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -87,23 +76,10 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, sign
 	}
 	defer resp.Body.Close()
 
-	r, _ = httputil.DumpResponse(resp, true)
-	fmt.Println(string(r))
-
 	err = json.NewDecoder(resp.Body).Decode(&outResponse)
 	if err != nil {
 		return nil // error EOF, because invalid url
 	}
 
 	return nil
-}
-
-func (c *Client) GetStatus(ctx context.Context, request *Request) (*Status, error) {
-	resp := &Status{}
-	err := c.makeRequest(ctx, request, resp, http.MethodGet, helper.JoinUrl(c.baseAddress, status))
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
 }

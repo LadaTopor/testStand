@@ -1,19 +1,17 @@
 package asupay
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"log"
-	"strconv"
-	"testStand/internal/acquirer"
-	"testStand/internal/acquirer/asupay/api"
-	"testStand/internal/acquirer/helper"
-	"testStand/internal/models"
-	"testStand/internal/repos"
+	"context"                                // встроенный пакет
+	"fmt"                                    // встроенный пакет
+	"log"                                    // встроенный пакет
+	"strconv"                                // встроенный пакет
+	"testStand/internal/acquirer"            // наш импорт
+	"testStand/internal/acquirer/asupay/api" // наш импорт
+	"testStand/internal/acquirer/helper"     // наш импорт
+	"testStand/internal/models"              // наш импорт
+	"testStand/internal/repos"               // наш импорт
 
-	"github.com/shopspring/decimal"
-	"go.uber.org/zap"
+	"github.com/shopspring/decimal" // внешний импорт
 )
 
 type GatewayParams struct {
@@ -33,13 +31,17 @@ type ChannelParams struct {
 }
 
 type Acquirer struct {
-	MerchId              *api.Request
 	api                  *api.Client
 	dbClient             *repos.Repo
 	channelParams        *ChannelParams
 	callbackUrl          string
 	percentageDifference *decimal.Decimal
 }
+
+const (
+	approved = "success"
+	rejected = "decline"
+)
 
 // NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams *ChannelParams, gatewayParams *GatewayParams, callbackUrl string) *Acquirer {
@@ -62,20 +64,15 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 // Payout
 func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
 	request := &api.Request{
-		MerchId:         a.channelParams.MerchId,
-		Extra:           txn.PayMethodId,
-		Amount:          strconv.FormatInt(txn.TxnAmountSrc, 10),
-		Currency:        txn.TxnCurrencySrc,
-		NotificationUrl: a.callbackUrl,
-		UserRef:         fmt.Sprintf("%d", txn.TxnId),
-		WithdrawId:      fmt.Sprintf("%d", txn.TxnId),
+		MerchId:    a.channelParams.MerchId,
+		Amount:     strconv.FormatInt(txn.TxnAmountSrc, 10),
+		WithdrawId: fmt.Sprintf("%d", txn.TxnId),
 		CardData: api.CardData{
 			CardNumber: txn.PaymentData.Object.Credentials,
 		},
 	}
 	secretKey := a.channelParams.SecretKey
 	sign := api.CreateSign(request.MerchId + request.CardData.CardNumber + request.Amount + secretKey)
-	fmt.Println("---------so: ", request.MerchId, request.CardData.CardNumber, request.Amount, secretKey)
 
 	request.Sign = sign
 
@@ -84,9 +81,7 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 		return nil, err
 	}
 
-	fmt.Println("------status", response.Status)
-
-	if response.Status != "success" {
+	if response.Status != approved {
 		return &acquirer.TransactionStatus{
 			Status: acquirer.REJECTED,
 			Info: map[string]string{
@@ -113,39 +108,12 @@ func (a *Acquirer) FinalizePending(ctx context.Context, txn *models.Transaction)
 	return helper.UnsupportedMethodError()
 }
 
-func handleFinalStatus(status string, newAmount decimal.Decimal, currency string) (*acquirer.TransactionStatus, error) {
-	return helper.UnsupportedMethodError()
-}
-
-func (a *Acquirer) convertAmount(ctx context.Context, amount decimal.Decimal, newAmount, currencySrc string) (decimal.Decimal, error) {
-	logger, _ := zap.NewDevelopment()
-
-	if len(newAmount) != 0 {
-		newAmount, err := decimal.NewFromString(newAmount)
-		if err != nil {
-			return decimal.Decimal{}, err
-		}
-
-		if a.percentageDifference != nil {
-			delta := amount.Mul(a.percentageDifference.Div(decimal.NewFromInt(100)))
-
-			if amount.Sub(newAmount).Abs().GreaterThanOrEqual(delta) {
-				logger.Warn("Skip callback: new amount is too low", zap.String("new_amount", newAmount.String()))
-				return decimal.Decimal{}, errors.New("callback amount is too low")
-			}
-		}
-
-		return newAmount, nil
-	}
-	return decimal.Decimal{}, nil
-}
-
 func handleStatus(tr *acquirer.TransactionStatus, status string) (*acquirer.TransactionStatus, error) {
 	switch status {
-	case "success":
+	case approved:
 		tr.Status = acquirer.APPROVED
 		return tr, nil
-	case "decline":
+	case rejected:
 		tr.Status = acquirer.REJECTED
 		return tr, nil
 	default:
