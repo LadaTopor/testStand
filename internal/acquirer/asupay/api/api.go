@@ -1,14 +1,14 @@
 package api
 
 import (
-	"bytes"         // встроенный пакет
-	"context"       // встроенный пакет
-	"crypto/sha256" // встроенный пакет
-	"encoding/hex"  // встроенный пакет
-	"encoding/json" // встроенный пакет
-	"net/http"      // встроенный пакет
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"net/http"
 
-	"testStand/internal/acquirer/helper" // наш импорт
+	"testStand/internal/acquirer/helper"
 )
 
 type Client struct {
@@ -32,10 +32,9 @@ func NewClient(ctx context.Context, baseAddress, apiKey string, timeout *int) *C
 
 // MakePayout
 func (c *Client) MakePayout(ctx context.Context, request *Request, secretKey string) (*Response, error) {
-	sign := CreateSign(request.MerchId + request.CardData.CardNumber + request.Amount + secretKey)
 
 	resp := &Response{}
-	err := c.makeRequest(ctx, request, resp, sign, payout)
+	err := c.makeRequest(ctx, request, resp, payout)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +48,7 @@ func CreateSign(input string) string {
 }
 
 // makeRequest
-func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, sign, endpoint string) error {
+func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endpoint string) error {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err

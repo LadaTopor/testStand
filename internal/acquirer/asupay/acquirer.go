@@ -1,15 +1,15 @@
 package asupay
 
 import (
-	"context" // встроенный пакет
-	"fmt"     // встроенный пакет
-	// встроенный пакет
-	"strconv"                                // встроенный пакет
-	"testStand/internal/acquirer"            // наш импорт
-	"testStand/internal/acquirer/asupay/api" // наш импорт
-	"testStand/internal/acquirer/helper"     // наш импорт
-	"testStand/internal/models"              // наш импорт
-	"testStand/internal/repos"               // наш импорт
+	"context"
+	"fmt"
+	"strconv"
+
+	"testStand/internal/acquirer"
+	"testStand/internal/acquirer/asupay/api"
+	"testStand/internal/acquirer/helper"
+	"testStand/internal/models"
+	"testStand/internal/repos"
 )
 
 type GatewayParams struct {
