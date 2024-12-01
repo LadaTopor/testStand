@@ -10,7 +10,6 @@ import (
 	"testStand/internal/acquirer/helper"     // наш импорт
 	"testStand/internal/models"              // наш импорт
 	"testStand/internal/repos"               // наш импорт
-	// внешний импорт
 )
 
 type GatewayParams struct {
