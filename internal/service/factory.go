@@ -5,14 +5,16 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"net/url"
 	"testStand/internal/acquirer"
+	"testStand/internal/acquirer/asupay"
 	"testStand/internal/acquirer/auris"
 	"testStand/internal/acquirer/paylink"
 	"testStand/internal/acquirer/sequoia"
 	"testStand/internal/models"
 	"testStand/internal/repos"
+
+	"go.uber.org/zap"
 
 	json "github.com/json-iterator/go"
 )
@@ -23,6 +25,7 @@ const (
 	AURIS   = "auris"
 	SEQUOIA = "sequoia"
 	PAYLINK = "paylink"
+	ASUPAY  = "asupay"
 )
 
 type Factory struct {
@@ -100,6 +103,13 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = paylink.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
+	case ASUPAY:
+		var chParams asupay.ChannelParams
+		var gtwParams asupay.GatewayParams
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
+			return nil, err
+		}
+		acq = asupay.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
 
 	default:
 		return nil, ErrUnsupportedAcquirer
