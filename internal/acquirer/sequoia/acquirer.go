@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/shopspring/decimal"
-	"go.uber.org/zap"
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/helper"
 	"testStand/internal/acquirer/sequoia/api"
 	"testStand/internal/models"
 	"testStand/internal/repos"
+
+	"github.com/labstack/gommon/log"
+	"github.com/shopspring/decimal"
 )
 
 type GatewayParams struct {
@@ -96,7 +97,7 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 
 // HandleCallback
 func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	callbackBody, ok := txn.TxnInfo["callback"]
 	if !ok {
@@ -106,7 +107,7 @@ func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) 
 	callback := api.Callback{}
 	err := json.Unmarshal([]byte(callbackBody), &callback)
 	if err != nil {
-		logger.Error("Error unmarshalling callback body", zap.String("callback", callbackBody))
+		logger.Error("Error unmarshalling callback body - ", callbackBody)
 		return nil, err
 	}
 
@@ -166,7 +167,7 @@ func handleFinalStatus(status string, newAmount decimal.Decimal, currency string
 }
 
 func (a *Acquirer) convertAmount(ctx context.Context, amount decimal.Decimal, newAmount, currencySrc string) (decimal.Decimal, error) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	if len(newAmount) != 0 {
 		newAmount, err := decimal.NewFromString(newAmount)
@@ -178,7 +179,7 @@ func (a *Acquirer) convertAmount(ctx context.Context, amount decimal.Decimal, ne
 			delta := amount.Mul(a.percentageDifference.Div(decimal.NewFromInt(100)))
 
 			if amount.Sub(newAmount).Abs().GreaterThanOrEqual(delta) {
-				logger.Warn("Skip callback: new amount is too low", zap.String("new_amount", newAmount.String()))
+				logger.Warn("Skip callback: new amount is too low - ", newAmount.String())
 				return decimal.Decimal{}, errors.New("callback amount is too low")
 			}
 		}

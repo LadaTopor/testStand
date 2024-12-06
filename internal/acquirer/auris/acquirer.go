@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/labstack/gommon/log"
 	"slices"
 	"strconv"
 	"testStand/internal/acquirer"
@@ -14,7 +15,6 @@ import (
 	"testStand/internal/repos"
 
 	"github.com/shopspring/decimal"
-	"go.uber.org/zap"
 )
 
 type gatewayMethod struct {
@@ -136,7 +136,7 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 
 // HandleCallback
 func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	callbackBody, ok := txn.TxnInfo["callback"]
 	if !ok {
@@ -146,7 +146,7 @@ func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) 
 	callback := api.Callback{}
 	err := json.Unmarshal([]byte(callbackBody), &callback)
 	if err != nil {
-		logger.Error("Error unmarshalling callback body", zap.String("callback", callbackBody))
+		logger.Error("Error unmarshalling callback body - ", callbackBody)
 		return nil, err
 	}
 
