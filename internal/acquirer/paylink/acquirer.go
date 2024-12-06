@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
+	"github.com/labstack/gommon/log"
 	"strconv"
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/helper"
@@ -122,7 +122,7 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 
 // HandleCallback
 func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	callbackBody, ok := txn.TxnInfo["callback"]
 
@@ -133,12 +133,12 @@ func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) 
 	callback := api.Callback{}
 	err := json.Unmarshal([]byte(callbackBody), &callback)
 	if err != nil {
-		logger.Error("Error unmarshalling callback body", zap.String("callback", callbackBody))
+		logger.Error("Error unmarshalling callback body - ", callbackBody)
 		return nil, err
 	}
 
 	if callback.Sign != base64.StdEncoding.EncodeToString(helper.GenerateHMAC(sha1.New, []byte(callback.Id), a.channelParams.ApiKey)) {
-		logger.Error("Invalid callback", zap.String("callback", callbackBody))
+		logger.Error("Invalid callback - ", callbackBody)
 		return nil, err
 	}
 

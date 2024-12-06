@@ -29,3 +29,21 @@ VALUES ('paylink', 1, '{"credentials": {"api_key": "m9bb1lelXNK3c198UWb2e41J1EQM
  ('auris', 2, '{"credentials": {"api_key": "049050051052-8ECG0WKvwSTWBzHTv2qtzy6MTiCkEoT2QAVAmNoGfQPzm02sPuBtz4nRwCJRs6fmM0WHUNqke6gG8o1MKcVHZGpJScZtOt8SmC3X1PGRx9uMTL3rw-OQP244B0M3HTID6T8PixLROqwaYQHJq6", "shop_id": 1102, "secret_key": "049050051052-jVDNvl8Lm8U4LQ7NPFGP2K03-k7w0o06k"}, "payment_methods": ["p2pcard"]}'),
  ('sequoia', 3, '{"credentials": {"secret_key": "8f5DSbXOolXwhLVmtOd", "callback_secret": "fqLFXw9BQLbW7G83Uf"}, "payment_methods": ["p2pcard"]}')
 
+-- auto-generated definition
+create table transaction
+(
+    txn_id               bigint                                             not null
+        primary key,
+    txn_type_id          varchar                                            not null,
+    pay_method_id        varchar                                            not null,
+    chn_name             varchar,
+    gtw_name             varchar,
+    gtw_txn_id           varchar,
+    txn_amount_src       bigint                                             not null,
+    txn_currency_src     varchar                                            not null,
+    txn_amount           bigint                                             not null,
+    txn_currency         varchar                                            not null,
+    txn_status_id        varchar                                            not null,
+    txn_updated_at       timestamp with time zone default CURRENT_TIMESTAMP not null,
+    txn_created_at       timestamp with time zone default CURRENT_TIMESTAMP not null
+)

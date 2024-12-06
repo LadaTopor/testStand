@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"net/url"
+
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/auris"
 	"testStand/internal/acquirer/paylink"
@@ -15,6 +15,7 @@ import (
 	"testStand/internal/repos"
 
 	json "github.com/json-iterator/go"
+	"github.com/labstack/gommon/log"
 )
 
 var ErrUnsupportedAcquirer = errors.New("unsupported acquirer")
@@ -39,9 +40,9 @@ func NewFactory(dbClient *repos.Repo) *Factory {
 
 // Create
 func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, error) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
-	gateway, err := f.dbClient.GetGateway(ctx, *txn.GtwName)
+	gateway, err := f.dbClient.GetGateway(*txn.GtwName)
 	if err != nil {
 		logger.Error(fmt.Sprint(1, err))
 		if err == sql.ErrNoRows {
@@ -50,7 +51,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 		return nil, err
 	}
 	logger.Info(fmt.Sprintf("Loaded gateway: %v", gateway))
-	channel, err := f.dbClient.GetChannel(ctx, *txn.ChnName)
+	channel, err := f.dbClient.GetChannel(*txn.ChnName)
 	if err != nil {
 		logger.Error(fmt.Sprint(2, err))
 		if err == sql.ErrNoRows {
@@ -66,7 +67,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 
 // create
 func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *repos.Gateway, channelParams repos.Params, callbackUrl string) (acquirer.Acquirer, error) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	var err error
 	var acq acquirer.Acquirer
@@ -100,7 +101,6 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = paylink.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
-
 	default:
 		return nil, ErrUnsupportedAcquirer
 	}
