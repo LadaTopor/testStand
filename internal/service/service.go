@@ -33,11 +33,28 @@ func (s *Service) CreatePayoutTransaction(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	resp := s.createTransaction(req, models.Transaction_PAYOUT)
+
+	return c.JSON(http.StatusOK, resp)
+}
+
+func (s *Service) CreatePaymentTransaction(c echo.Context) error {
+	req := &Request{}
+	err := c.Bind(req)
+	if err != nil {
+		return err
+	}
+	resp := s.createTransaction(req, models.Transaction_PAYMENT)
+
+	return c.JSON(http.StatusOK, resp)
+}
+
+func (s *Service) createTransaction(req *Request, txnType models.Transaction_Type) *Response {
 
 	txn := &models.Transaction{
 		TxnId:          int64(uuid.New().ID()),
 		ParentTxn:      nil,
-		TxnTypeId:      models.Transaction_PAYOUT,
+		TxnTypeId:      txnType,
 		PayMethodId:    req.PaymentData.Type,
 		PaymentData:    req.PaymentData,
 		Customer:       &req.Customer,
@@ -75,7 +92,7 @@ func (s *Service) CreatePayoutTransaction(c echo.Context) error {
 		resp.Result = result
 	}
 
-	return c.JSON(http.StatusOK, resp)
+	return resp
 }
 
 // process

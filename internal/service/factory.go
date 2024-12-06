@@ -41,7 +41,7 @@ func NewFactory(dbClient *repos.Repo) *Factory {
 func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, error) {
 	logger, _ := zap.NewDevelopment()
 
-	gateway, err := f.dbClient.GetGateway(ctx, *txn.GtwName)
+	gateway, err := f.dbClient.GetGateway(*txn.GtwName)
 	if err != nil {
 		logger.Error(fmt.Sprint(1, err))
 		if err == sql.ErrNoRows {
@@ -50,7 +50,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 		return nil, err
 	}
 	logger.Info(fmt.Sprintf("Loaded gateway: %v", gateway))
-	channel, err := f.dbClient.GetChannel(ctx, *txn.ChnName)
+	channel, err := f.dbClient.GetChannel(*txn.ChnName)
 	if err != nil {
 		logger.Error(fmt.Sprint(2, err))
 		if err == sql.ErrNoRows {

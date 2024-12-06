@@ -12,6 +12,7 @@ const (
 	Transaction_REFUND           Transaction_Type = 2
 	Transaction_REVERSE          Transaction_Type = 3
 	Transaction_PAYOUT           Transaction_Type = 4
+	Transaction_CALLBACK         Transaction_Type = 5
 	Transaction_TRANSFER         Transaction_Type = 5
 	Transaction_TECHREVERSE      Transaction_Type = 6
 	Transaction_INTERNAL         Transaction_Type = 7
@@ -141,6 +142,13 @@ func (txn *Transaction) IsPayout() bool {
 		return false
 	}
 	return txn.TxnTypeId == Transaction_PAYOUT
+}
+
+func (txn *Transaction) IsCallback() bool {
+	if txn == nil {
+		return false
+	}
+	return txn.TxnTypeId == Transaction_CALLBACK
 }
 
 // Transaction status

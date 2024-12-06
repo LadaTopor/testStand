@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/labstack/gommon/log"
 	"strconv"
 	"testStand/internal/acquirer"
 	"testStand/internal/models"
@@ -39,7 +40,18 @@ func NewHandler(db *repos.Repo, acq any) (*handler, error) {
 func (h *handler) HandleTxn(ctx context.Context, txn *models.Transaction) {
 
 	if h.acquirer != nil {
+		err := h.dbClient.CreateTransaction(txn)
+		if err != nil {
+			log.Error("error with saving transaction - ", err)
+			return
+		}
 		h.handle(ctx, txn)
+
+		err = h.dbClient.UpdateTransactionStatus(txn)
+		if err != nil {
+			log.Error("error with updating transaction - ", err)
+			return
+		}
 	}
 }
 
@@ -54,6 +66,8 @@ func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 		status, err = h.acquirer.Payment(ctx, txn)
 	} else if txn.IsPayout() {
 		status, err = h.acquirer.Payout(ctx, txn)
+	} else if txn.IsCallback() {
+		status, err = h.acquirer.HandleCallback(ctx, txn)
 	} else {
 		logger.Info("unknown transaction status")
 	}
