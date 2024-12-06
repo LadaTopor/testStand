@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"net/url"
+
 	"testStand/internal/acquirer"
+	"testStand/internal/acquirer/alpex"
 	"testStand/internal/acquirer/auris"
 	"testStand/internal/acquirer/paylink"
 	"testStand/internal/acquirer/sequoia"
@@ -15,6 +16,7 @@ import (
 	"testStand/internal/repos"
 
 	json "github.com/json-iterator/go"
+	"github.com/labstack/gommon/log"
 )
 
 var ErrUnsupportedAcquirer = errors.New("unsupported acquirer")
@@ -23,6 +25,7 @@ const (
 	AURIS   = "auris"
 	SEQUOIA = "sequoia"
 	PAYLINK = "paylink"
+	ALPEX   = "alpex"
 )
 
 type Factory struct {
@@ -39,7 +42,7 @@ func NewFactory(dbClient *repos.Repo) *Factory {
 
 // Create
 func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, error) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	gateway, err := f.dbClient.GetGateway(*txn.GtwName)
 	if err != nil {
@@ -66,7 +69,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 
 // create
 func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *repos.Gateway, channelParams repos.Params, callbackUrl string) (acquirer.Acquirer, error) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	var err error
 	var acq acquirer.Acquirer
@@ -100,7 +103,13 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = paylink.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
-
+	case ALPEX:
+		var chParams alpex.ChannelParams
+		var gtwParams alpex.GatewayParams
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
+			return nil, err
+		}
+		acq = alpex.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
 	default:
 		return nil, ErrUnsupportedAcquirer
 	}

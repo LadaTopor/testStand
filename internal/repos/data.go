@@ -76,10 +76,9 @@ func (db *Repo) CreateTransaction(txn *models.Transaction) error {
 		    txn_currency_src,
 		    txn_amount,
 		    txn_currency,
-		    txn_status_id
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-		)`, txn.TxnId,
+		    txn_status_id)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		ON CONFLICT (txn_id) DO NOTHING`, txn.TxnId,
 		txn.TxnTypeId,
 		txn.PayMethodId,
 		txn.ChnName,
@@ -116,21 +115,22 @@ func (db *Repo) GetTransaction(txnId int64) (*models.Transaction, error) {
 		transaction
 	WHERE 
 		txn_id = $1`, txnId).Scan(
-		txn.TxnId,
-		txn.TxnTypeId,
-		txn.PayMethodId,
-		txn.ChnName,
-		txn.GtwName,
-		txn.GtwTxnId,
-		txn.TxnAmountSrc,
-		txn.TxnCurrencySrc,
-		txn.TxnAmount,
-		txn.TxnCurrency,
-		txn.TxnStatusId)
+		&txn.TxnId,
+		&txn.TxnTypeId,
+		&txn.PayMethodId,
+		&txn.ChnName,
+		&txn.GtwName,
+		&txn.GtwTxnId,
+		&txn.TxnAmountSrc,
+		&txn.TxnCurrencySrc,
+		&txn.TxnAmount,
+		&txn.TxnCurrency,
+		&txn.TxnStatusId)
 	if err != nil {
 		return nil, err
 	}
 
+	txn.TxnInfo = map[string]string{}
 	return txn, nil
 }
 
@@ -139,7 +139,7 @@ func (db *Repo) UpdateTransactionStatus(txn *models.Transaction) error {
 	_, err := db.pgClient.Exec(`
 	UPDATE transaction
 	SET txn_status_id = $1, txn_updated_at = CURRENT_TIMESTAMP
-	WHERE txn_id = $2`, txn.TxnId, txn.TxnStatusId)
+	WHERE txn_id = $2`, txn.TxnStatusId, txn.TxnId)
 	if err != nil {
 		return err
 	}

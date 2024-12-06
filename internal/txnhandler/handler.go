@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/labstack/gommon/log"
 	"strconv"
-	"testStand/internal/acquirer"
-	"testStand/internal/models"
 	"time"
 
+	"testStand/internal/acquirer"
+	"testStand/internal/models"
 	"testStand/internal/repos"
 
-	"go.uber.org/zap"
+	"github.com/labstack/gommon/log"
 )
 
 var (
@@ -57,7 +56,7 @@ func (h *handler) HandleTxn(ctx context.Context, txn *models.Transaction) {
 
 // handle
 func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	var status *acquirer.TransactionStatus
 	var err error
@@ -73,8 +72,9 @@ func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 	}
 
 	if err != nil {
-		logger.Error("error processing txn by acquirer interface", zap.Error(err))
+		logger.Error("error processing txn by acquirer interface: ", err)
 		txnFillHandlingError(txn, err)
+		return
 	}
 
 	updatedAt := time.Now()
@@ -88,7 +88,7 @@ func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 	case acquirer.APPROVED:
 		txn.SetReconciled(updatedAt)
 
-		logger.Info(fmt.Sprintf("approving txn with status: %s", txn.TxnStatusId.String()))
+		logger.Info(fmt.Sprintf("approving txn with status: %s", txn.TxnStatusId))
 	case acquirer.REJECTED:
 		txn.SetDeclined(updatedAt)
 		if status.TxnError == nil {
@@ -123,7 +123,7 @@ func (h *handler) handle(ctx context.Context, txn *models.Transaction) {
 
 // SetSafePending
 func (h *handler) SetSafePending(ctx context.Context, txn *models.Transaction, updatedAt *time.Time) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	if txn == nil {
 		logger.Warn("cannot set pending for null transaction")
@@ -144,7 +144,6 @@ func (h *handler) SetSafePending(ctx context.Context, txn *models.Transaction, u
 	}
 }
 
-// txnFillHandlingError
 func txnFillHandlingError(txn *models.Transaction, err error) {
 	if txn == nil || err == nil {
 		return

@@ -1,6 +1,10 @@
 package service
 
-import "github.com/shopspring/decimal"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type Paylink struct {
 	Id               string `json:"id"`
@@ -40,4 +44,37 @@ type Sequoia struct {
 	CardNumber  string          `json:"card_number"`
 	PaymentType int             `json:"payment_type"`
 	Status      string          `json:"status"`
+}
+
+type Alpex struct {
+	Id            string `json:"_id"`
+	PaymentMethod struct {
+		Id   string `json:"_id"`
+		Gate struct {
+			Id   string `json:"_id"`
+			Name string `json:"name"`
+		} `json:"gate"`
+		Name        string `json:"name"`
+		Address     string `json:"address"`
+		Person      string `json:"person"`
+		IsTemporary bool   `json:"is_temporary"`
+	} `json:"payment_method,omitempty"`
+	Direction       string    `json:"direction"`
+	Amount          float64   `json:"amount"`
+	AmountFiat      float64   `json:"amount_fiat"`
+	Status          string    `json:"status"`
+	CreatedAt       time.Time `json:"created_at"`
+	OverdueAt       time.Time `json:"overdue_at"`
+	StatusChangedAt time.Time `json:"status_changed_at"`
+	Fee             int       `json:"fee"`
+	FeeExternal     int       `json:"fee_external"`
+	ApproveCode     string    `json:"approve_code"`
+	TimeDiffSeconds int       `json:"time_diff_seconds"`
+	IsExternal      bool      `json:"is_external"`
+	BeneficiaryName string    `json:"beneficiary_name"`
+	UnitCost        int       `json:"unit_cost"`
+	Signature       *string   `json:"signature"`
+	ExternalId      string    `json:"external_id"`
+
+	Error string `json:"error"`
 }

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"github.com/labstack/gommon/log"
 	"net/http"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
 type Service struct {
@@ -66,7 +66,7 @@ func (s *Service) createTransaction(req *Request, txnType models.Transaction_Typ
 		TxnAmount:      0,
 		TxnCurrency:    "",
 		TxnInfo:        nil,
-		TxnStatusId:    models.Transaction_NEW,
+		TxnStatusId:    models.Transaction_NEW.String(),
 		TxnUpdatedAt:   time.Time{},
 	}
 
@@ -75,7 +75,7 @@ func (s *Service) createTransaction(req *Request, txnType models.Transaction_Typ
 
 	resp := &Response{
 		TxnId:     txn.TxnId,
-		TxnStatus: txn.TxnStatusId.String(),
+		TxnStatus: txn.TxnStatusId,
 	}
 
 	if txn.Outputs != nil {
@@ -87,7 +87,7 @@ func (s *Service) createTransaction(req *Request, txnType models.Transaction_Typ
 			result.Bank = bank
 		}
 		if desc, ok := txn.Outputs["description"]; ok && len(desc) > 0 {
-			result.Credentials = desc
+			result.Description = desc
 		}
 		resp.Result = result
 	}
@@ -97,17 +97,17 @@ func (s *Service) createTransaction(req *Request, txnType models.Transaction_Typ
 
 // process
 func (s *Service) process(ctx context.Context, txn *models.Transaction) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	// Choose acquirer by gateway
 	acq, err := s.selectAcquirer(ctx, txn)
 	if err != nil {
-		logger.Error("Error creating acquirer for the gateway", zap.Error(err))
+		logger.Error("Error creating acquirer for the gateway - ", err)
 		if err == repos.ErrGtwNotFound || err == repos.ErrChnNotFound {
-			logger.Fatal("Route not found")
+			logger.Error("Route not found")
 		} else {
 			txn.SetDeclined(time.Now())
-			logger.Fatal(err.Error())
+			logger.Error(err.Error())
 		}
 	}
 

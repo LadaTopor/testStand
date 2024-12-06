@@ -20,24 +20,24 @@ const (
 
 // Transaction - объект транзакции.
 type Transaction struct {
-	TxnId          int64              `json:"txn_id,omitempty"`
-	ParentTxn      *Transaction       `json:"parent_txn,omitempty"`
-	TxnTypeId      Transaction_Type   `json:"txn_type_id,omitempty"`
-	PayMethodId    string             `json:"pay_method_id,omitempty"`
-	PaymentData    PaymentData        `json:"payment_data,omitempty"`
-	Customer       *Customer          `json:"customer,omitempty"`
-	ChnName        *string            `json:"chn_name,omitempty"`
-	GtwName        *string            `json:"gtw_name,omitempty"`
-	GtwTxnId       *string            `json:"gtw_txn_id,omitempty"`
-	TxnAmountSrc   int64              `json:"txn_amount_src,omitempty"`
-	TxnCurrencySrc string             `json:"txn_currency_src,omitempty"`
-	TxnAmount      int64              `json:"txn_amount,omitempty"`
-	TxnCurrency    string             `json:"txn_currency,omitempty"`
-	TxnInfo        map[string]string  `json:"txn_info,omitempty"`
-	TxnStatusId    Transaction_Status `json:"txn_status_id,omitempty"`
-	TxnUpdatedAt   time.Time          `json:"txn_updated_at,omitempty"`
-	Err            *TxnError          `json:"txn_error,omitempty"`
-	Outputs        map[string]string  `json:"outputs,omitempty"`
+	TxnId          int64             `json:"txn_id,omitempty"`
+	ParentTxn      *Transaction      `json:"parent_txn,omitempty"`
+	TxnTypeId      Transaction_Type  `json:"txn_type_id,omitempty"`
+	PayMethodId    string            `json:"pay_method_id,omitempty"`
+	PaymentData    PaymentData       `json:"payment_data,omitempty"`
+	Customer       *Customer         `json:"customer,omitempty"`
+	ChnName        *string           `json:"chn_name,omitempty"`
+	GtwName        *string           `json:"gtw_name,omitempty"`
+	GtwTxnId       *string           `json:"gtw_txn_id,omitempty"`
+	TxnAmountSrc   int64             `json:"txn_amount_src,omitempty"`
+	TxnCurrencySrc string            `json:"txn_currency_src,omitempty"`
+	TxnAmount      int64             `json:"txn_amount,omitempty"`
+	TxnCurrency    string            `json:"txn_currency,omitempty"`
+	TxnInfo        map[string]string `json:"txn_info,omitempty"`
+	TxnStatusId    string            `json:"txn_status_id,omitempty"`
+	TxnUpdatedAt   time.Time         `json:"txn_updated_at,omitempty"`
+	Err            *TxnError         `json:"txn_error,omitempty"`
+	Outputs        map[string]string `json:"outputs,omitempty"`
 }
 
 type TxnError struct {
@@ -158,7 +158,7 @@ func (txn *Transaction) IsNew() bool {
 	if txn == nil {
 		return false
 	}
-	return txn.TxnStatusId == Transaction_NEW
+	return txn.TxnStatusId == Transaction_NEW.String()
 }
 
 // IsPending
@@ -166,7 +166,7 @@ func (txn *Transaction) IsPending() bool {
 	if txn == nil {
 		return false
 	}
-	return txn.TxnStatusId == Transaction_PENDING
+	return txn.TxnStatusId == Transaction_PENDING.String()
 }
 
 // IsDeclined
@@ -174,7 +174,7 @@ func (txn *Transaction) IsDeclined() bool {
 	if txn == nil {
 		return false
 	}
-	return txn.TxnStatusId == Transaction_DECLINED
+	return txn.TxnStatusId == Transaction_DECLINED.String()
 }
 
 // IsReconciled
@@ -182,7 +182,7 @@ func (txn *Transaction) IsReconciled() bool {
 	if txn == nil {
 		return false
 	}
-	return txn.TxnStatusId == Transaction_RECONCILED
+	return txn.TxnStatusId == Transaction_RECONCILED.String()
 }
 
 // SetPending
@@ -206,11 +206,11 @@ func (txn *Transaction) setStatus(status Transaction_Status, dateField *time.Tim
 		return
 	}
 
-	if txn.TxnStatusId == status {
+	if txn.TxnStatusId == status.String() {
 		return
 	}
 
-	txn.TxnStatusId = status
+	txn.TxnStatusId = status.String()
 	if dateField != nil {
 		*dateField = *date
 	}
