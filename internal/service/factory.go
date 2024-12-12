@@ -6,17 +6,17 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+
 	"testStand/internal/acquirer"
-	"testStand/internal/acquirer/asupay"
+	"testStand/internal/acquirer/alpex"
 	"testStand/internal/acquirer/auris"
 	"testStand/internal/acquirer/paylink"
 	"testStand/internal/acquirer/sequoia"
 	"testStand/internal/models"
 	"testStand/internal/repos"
 
-	"go.uber.org/zap"
-
 	json "github.com/json-iterator/go"
+	"github.com/labstack/gommon/log"
 )
 
 var ErrUnsupportedAcquirer = errors.New("unsupported acquirer")
@@ -25,7 +25,7 @@ const (
 	AURIS   = "auris"
 	SEQUOIA = "sequoia"
 	PAYLINK = "paylink"
-	ASUPAY  = "asupay"
+	ALPEX   = "alpex"
 )
 
 type Factory struct {
@@ -42,9 +42,9 @@ func NewFactory(dbClient *repos.Repo) *Factory {
 
 // Create
 func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, error) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
-	gateway, err := f.dbClient.GetGateway(ctx, *txn.GtwName)
+	gateway, err := f.dbClient.GetGateway(*txn.GtwName)
 	if err != nil {
 		logger.Error(fmt.Sprint(1, err))
 		if err == sql.ErrNoRows {
@@ -53,7 +53,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 		return nil, err
 	}
 	logger.Info(fmt.Sprintf("Loaded gateway: %v", gateway))
-	channel, err := f.dbClient.GetChannel(ctx, *txn.ChnName)
+	channel, err := f.dbClient.GetChannel(*txn.ChnName)
 	if err != nil {
 		logger.Error(fmt.Sprint(2, err))
 		if err == sql.ErrNoRows {
@@ -69,7 +69,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 
 // create
 func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *repos.Gateway, channelParams repos.Params, callbackUrl string) (acquirer.Acquirer, error) {
-	logger, _ := zap.NewDevelopment()
+	logger := log.New("dev")
 
 	var err error
 	var acq acquirer.Acquirer
@@ -103,14 +103,13 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = paylink.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
-	case ASUPAY:
-		var chParams asupay.ChannelParams
-		var gtwParams asupay.GatewayParams
+	case ALPEX:
+		var chParams alpex.ChannelParams
+		var gtwParams alpex.GatewayParams
 		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
 			return nil, err
 		}
-		acq = asupay.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
-
+		acq = alpex.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
 	default:
 		return nil, ErrUnsupportedAcquirer
 	}

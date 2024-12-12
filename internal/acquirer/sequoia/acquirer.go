@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/shopspring/decimal"
-	"go.uber.org/zap"
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/helper"
 	"testStand/internal/acquirer/sequoia/api"
 	"testStand/internal/models"
 	"testStand/internal/repos"
+
+	"github.com/shopspring/decimal"
+	"go.uber.org/zap"
 )
 
 type GatewayParams struct {

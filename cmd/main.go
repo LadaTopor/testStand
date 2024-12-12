@@ -1,9 +1,10 @@
 package main
 
 import (
+	"testStand/internal/service"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"testStand/internal/service"
 )
 
 func main() {
@@ -20,6 +21,9 @@ func main() {
 
 	// Routes
 	e.POST("/payout", svc.CreatePayoutTransaction)
+	e.POST("/payment", svc.CreatePaymentTransaction)
+
+	e.POST("/callback/:acquirer", svc.CallbackHandler)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":1323"))

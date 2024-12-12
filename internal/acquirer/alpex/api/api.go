@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/http/httputil"
 
 	"testStand/internal/acquirer/helper"
 )
@@ -51,6 +53,10 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 		return err
 	}
 
+	r, _ := httputil.DumpRequest(req, true)
+	fmt.Println(string(r))
+	fmt.Println("----------------------------------------------------------------------------------")
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
@@ -58,6 +64,11 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 	if err != nil {
 		return err
 	}
+
+	res, _ := httputil.DumpResponse(resp, true)
+	fmt.Println(string(res))
+	fmt.Println("----------------------------------------------------------------------------------")
+
 	defer resp.Body.Close()
 
 	err = json.NewDecoder(resp.Body).Decode(&outResponse)
