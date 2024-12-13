@@ -45,8 +45,8 @@ type Sequoia struct {
 }
 
 type Alpex struct {
-	Id          string `json:"_id"`
-	Status      string `json:"status"`
-	External_id string `json:"external_id"`
-	Sign        string `json:"signature"`
+	Id         string `json:"_id"`
+	Status     string `json:"status"`
+	ExternalId string `json:"external_id"`
+	Sign       string `json:"signature"`
 }

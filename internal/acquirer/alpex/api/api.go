@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"net/http/httputil"
 
 	"testStand/internal/acquirer/helper"
 )
@@ -18,7 +16,9 @@ type Client struct {
 }
 
 const (
-	offer = "v1/offer/external"
+	offer   = "v1/offer/external"
+	signUrl = "http://147.45.152.131:8022/v1/user/generate-signature-key"
+	apiUrl  = "http://147.45.152.131:8022/v1/auth/login"
 )
 
 func NewClient(ctx context.Context, baseAddress, apiKey string, timeout *int) *Client {
@@ -53,10 +53,6 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 		return err
 	}
 
-	r, _ := httputil.DumpRequest(req, true)
-	fmt.Println(string(r))
-	fmt.Println("----------------------------------------------------------------------------------")
-
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
@@ -64,10 +60,6 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 	if err != nil {
 		return err
 	}
-
-	res, _ := httputil.DumpResponse(resp, true)
-	fmt.Println(string(res))
-	fmt.Println("----------------------------------------------------------------------------------")
 
 	defer resp.Body.Close()
 
@@ -77,4 +69,45 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 	}
 
 	return nil
+}
+
+func GetApi() string {
+	var jsonData = []byte(`{"email": "buyer@dev.alpex.app", "password": "dev"}`)
+
+	type response struct {
+		Key string `json:"access_token"`
+	}
+
+	res := &response{}
+
+	body := bytes.NewBuffer(jsonData)
+
+	resp, _ := http.Post(apiUrl, "application/json", body)
+
+	defer resp.Body.Close()
+
+	_ = json.NewDecoder(resp.Body).Decode(&res)
+
+	return res.Key
+}
+
+func GetSign() string {
+	type response struct {
+		Sign string `json:"signature_key"`
+	}
+
+	res := &response{}
+
+	req, _ := http.NewRequest(http.MethodPost, signUrl, nil)
+
+	req.Header.Set("Authorization", "Bearer "+GetApi())
+
+	client := &http.Client{}
+	resp, _ := client.Do(req)
+
+	defer resp.Body.Close()
+
+	_ = json.NewDecoder(resp.Body).Decode(&res)
+
+	return res.Sign
 }

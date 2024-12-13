@@ -152,7 +152,7 @@ func alpexCallbackMapper(payRepo *repos.Repo, gtwAdapterId string, content []byt
 		return 0, nil, err
 	}
 
-	txnId, err := strconv.ParseInt(callback.External_id, 10, 64)
+	txnId, err := strconv.ParseInt(callback.ExternalId, 10, 64)
 	if err != nil {
 		logger.Error("error parsing txnId - ", err)
 		return 0, nil, err

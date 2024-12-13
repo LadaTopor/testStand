@@ -54,7 +54,6 @@ type Amount struct {
 type PaymentData struct {
 	Type   string `json:"type"`
 	Object struct {
-		Gate_Id     string  `json:"gate_id"`
 		Credentials string  `json:"credentials"`
 		Bank        *string `json:"bank"`
 	} `json:"object"`

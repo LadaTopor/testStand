@@ -12,16 +12,14 @@ type Gate struct {
 }
 
 type Request struct {
-	Gate_Id         string `json:"gate_id"`
-	Id              string `json:"id"`
-	CustomerName    string `json:"customer_name"`
-	CustomerAddress string `json:"customer_address"`
+	GateId          string `json:"gate_id,omitempty"`
+	CustomerName    string `json:"customer_name,omitempty"`
+	CustomerAddress string `json:"customer_address,omitempty"`
 	FiatSymbol      string `json:"fiat_symbol"`
 	FiatAmount      int64  `json:"fiat_amount"`
 	Direction       string `json:"direction"`
-	Status          string `json:"status"`
-	Webhook_url     string `json:"webhook_url"`
-	External_id     string `json:"external_id"`
+	WebhookUrl      string `json:"webhook_url"`
+	ExternalId      string `json:"external_id,omitempty"`
 }
 
 type ResponsePaymentMethod struct {
