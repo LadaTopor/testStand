@@ -10,21 +10,21 @@ import (
 )
 
 type Client struct {
-	baseAddress string
+	BaseAddress string
 	apiKey      string
 	client      *http.Client
 }
 
 const (
 	offer   = "v1/offer/external"
-	signUrl = "http://147.45.152.131:8022/v1/user/generate-signature-key"
-	apiUrl  = "http://147.45.152.131:8022/v1/auth/login"
+	signUrl = "v1/user/generate-signature-key"
+	apiUrl  = "v1/auth/login"
 )
 
 func NewClient(ctx context.Context, baseAddress, apiKey string, timeout *int) *Client {
 	client := http.DefaultClient
 	return &Client{
-		baseAddress: baseAddress,
+		BaseAddress: baseAddress,
 		apiKey:      apiKey,
 		client:      client,
 	}
@@ -48,7 +48,7 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, endpoint), bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.BaseAddress, endpoint), bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 	return nil
 }
 
-func GetApi() string {
+func GetApi(baseAddr string) string {
 	var jsonData = []byte(`{"email": "buyer@dev.alpex.app", "password": "dev"}`)
 
 	type response struct {
@@ -82,7 +82,7 @@ func GetApi() string {
 
 	body := bytes.NewBuffer(jsonData)
 
-	resp, _ := http.Post(apiUrl, "application/json", body)
+	resp, _ := http.Post(helper.JoinUrl(baseAddr, apiUrl), "application/json", body)
 
 	defer resp.Body.Close()
 
@@ -91,16 +91,16 @@ func GetApi() string {
 	return res.Key
 }
 
-func GetSign() string {
+func GetSign(baseAddr string) string {
 	type response struct {
 		Sign string `json:"signature_key"`
 	}
 
 	res := &response{}
 
-	req, _ := http.NewRequest(http.MethodPost, signUrl, nil)
+	req, _ := http.NewRequest(http.MethodPost, helper.JoinUrl(baseAddr, signUrl), nil)
 
-	req.Header.Set("Authorization", "Bearer "+GetApi())
+	req.Header.Set("Authorization", "Bearer "+GetApi(baseAddr))
 
 	client := &http.Client{}
 	resp, _ := client.Do(req)

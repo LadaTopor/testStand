@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"testStand/internal/acquirer"
+
 	"testStand/internal/acquirer/alpex/api"
 	"testStand/internal/acquirer/helper"
 	"testStand/internal/models"
@@ -35,13 +36,14 @@ type Transport struct {
 }
 
 type ChannelParams struct {
-	GateId string `json:"gate_id"`
+	GateId      string `json:"gate_id"`
+	BaseAddress string `json:"base_address"`
 }
 
 type Acquirer struct {
 	api           *api.Client
 	dbClient      *repos.Repo
-	channelParams *ChannelParams
+	ChannelParams *ChannelParams
 	callbackUrl   string
 }
 
@@ -50,16 +52,12 @@ const (
 	SELL = "SELL"
 )
 
-var (
-	ApiKey  = api.GetApi()
-	SignKey = api.GetSign()
-)
-
 // NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams *ChannelParams, gatewayParams *GatewayParams, callbackUrl string) *Acquirer {
+
 	return &Acquirer{
-		channelParams: channelParams,
-		api:           api.NewClient(ctx, gatewayParams.Transport.BaseAddress, ApiKey, gatewayParams.Transport.Timeout),
+		ChannelParams: channelParams,
+		api:           api.NewClient(ctx, gatewayParams.Transport.BaseAddress, api.GetApi(gatewayParams.Transport.BaseAddress), gatewayParams.Transport.Timeout),
 		dbClient:      db,
 		callbackUrl:   "https://webhook.site/88d71697-ff27-49e8-8887-02faeeb1a166",
 	}
@@ -72,7 +70,7 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 		FiatAmount: txn.TxnAmountSrc,
 		FiatSymbol: txn.TxnCurrencySrc,
 		ExternalId: fmt.Sprintf("%d", txn.TxnId),
-		GateId:     a.channelParams.GateId,
+		GateId:     a.ChannelParams.GateId,
 		WebhookUrl: a.callbackUrl,
 		Direction:  BUY,
 	}
@@ -111,7 +109,7 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 		FiatSymbol:      txn.TxnCurrencySrc,
 		CustomerName:    txn.Customer.FullName,
 		CustomerAddress: txn.PaymentData.Object.Credentials,
-		GateId:          a.channelParams.GateId,
+		GateId:          a.ChannelParams.GateId,
 		ExternalId:      fmt.Sprintf("%d", txn.TxnId),
 		WebhookUrl:      a.callbackUrl,
 		Direction:       SELL,
@@ -155,7 +153,7 @@ func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) 
 		return nil, err
 	}
 
-	if callback.Sign != hex.EncodeToString(helper.GenerateHMAC(sha256.New, []byte(fmt.Sprintf("id=%s\nstatus=%s", callback.Id, callback.Status)), SignKey)) {
+	if callback.Sign != hex.EncodeToString(helper.GenerateHMAC(sha256.New, []byte(fmt.Sprintf("id=%s\nstatus=%s", callback.Id, callback.Status)), api.GetSign(a.ChannelParams.BaseAddress))) {
 		logger.Error("Invalid callback - ", callbackBody)
 		return nil, err
 	}
