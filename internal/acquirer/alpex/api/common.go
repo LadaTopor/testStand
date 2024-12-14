@@ -6,6 +6,11 @@ const (
 	Decline    = "CANCELLED"
 )
 
+var Login = map[string]string{
+	"email":    "buyer@dev.alpex.app",
+	"password": "dev",
+}
+
 type Gate struct {
 	Id   string `json:"gate_id"`
 	Name string `json:"name"`
@@ -49,5 +54,4 @@ type Callback struct {
 	TimestampUpdated string `json:"timestamp_updated"`
 	Amount           string `json:"amount"`
 	Sign             string `json:"signature"`
-	Webhook_url      string `json:"webhook_url"`
 }

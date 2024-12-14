@@ -4,28 +4,28 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"testStand/internal/acquirer/helper"
 )
 
 type Client struct {
-	BaseAddress string
+	baseAddress string
 	apiKey      string
 	client      *http.Client
 }
 
 const (
-	offer   = "v1/offer/external"
-	signUrl = "v1/user/generate-signature-key"
-	apiUrl  = "v1/auth/login"
+	offerEndpoint = "v1/offer/external"
+	signEndpoint  = "v1/user/generate-signature-key"
+	apiEndpoint   = "v1/auth/login"
 )
 
-func NewClient(ctx context.Context, baseAddress, apiKey string, timeout *int) *Client {
+func NewClient(ctx context.Context, baseAddress string, timeout *int) *Client {
 	client := http.DefaultClient
 	return &Client{
-		BaseAddress: baseAddress,
-		apiKey:      apiKey,
+		baseAddress: baseAddress,
 		client:      client,
 	}
 }
@@ -33,7 +33,7 @@ func NewClient(ctx context.Context, baseAddress, apiKey string, timeout *int) *C
 // MakePayment
 func (c *Client) MakePayment(ctx context.Context, request *Request) (*Response, error) {
 	resp := &Response{}
-	err := c.makeRequest(ctx, request, resp, offer)
+	err := c.makeRequest(ctx, request, resp, offerEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -43,12 +43,14 @@ func (c *Client) MakePayment(ctx context.Context, request *Request) (*Response, 
 
 // makeRequest
 func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endpoint string) error {
+	c.apiKey, _ = c.GetApi()
+
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.BaseAddress, endpoint), bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, endpoint), bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -71,43 +73,60 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 	return nil
 }
 
-func GetApi(baseAddr string) string {
-	var jsonData = []byte(`{"email": "buyer@dev.alpex.app", "password": "dev"}`)
-
-	type response struct {
-		Key string `json:"access_token"`
+func (c *Client) GetApi() (string, error) {
+	jsonData, err := json.Marshal(Login)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	res := &response{}
+	var res map[string]string
 
 	body := bytes.NewBuffer(jsonData)
 
-	resp, _ := http.Post(helper.JoinUrl(baseAddr, apiUrl), "application/json", body)
+	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, apiEndpoint), body)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := c.client.Do(req)
 
 	defer resp.Body.Close()
 
-	_ = json.NewDecoder(resp.Body).Decode(&res)
-
-	return res.Key
-}
-
-func GetSign(baseAddr string) string {
-	type response struct {
-		Sign string `json:"signature_key"`
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	if err != nil {
+		return "", err
 	}
 
-	res := &response{}
+	return res["access_token"], nil
+}
 
-	req, _ := http.NewRequest(http.MethodPost, helper.JoinUrl(baseAddr, signUrl), nil)
+func (c *Client) GetSign() (string, error) {
 
-	req.Header.Set("Authorization", "Bearer "+GetApi(baseAddr))
+	var res map[string]string
+	apiKey, err := c.GetApi()
+	if err != nil {
+		return "", err
+	}
 
-	client := &http.Client{}
-	resp, _ := client.Do(req)
+	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, signEndpoint), nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return "", err
+	}
 
 	defer resp.Body.Close()
 
-	_ = json.NewDecoder(resp.Body).Decode(&res)
+	err = json.NewDecoder(resp.Body).Decode(&res)
+	if err != nil {
+		return "", err
+	}
 
-	return res.Sign
+	return res["signature_key"], nil
 }

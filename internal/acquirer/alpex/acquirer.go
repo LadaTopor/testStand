@@ -36,14 +36,13 @@ type Transport struct {
 }
 
 type ChannelParams struct {
-	GateId      string `json:"gate_id"`
-	BaseAddress string `json:"base_address"`
+	GateId string `json:"gate_id"`
 }
 
 type Acquirer struct {
 	api           *api.Client
 	dbClient      *repos.Repo
-	ChannelParams *ChannelParams
+	channelParams *ChannelParams
 	callbackUrl   string
 }
 
@@ -54,10 +53,9 @@ const (
 
 // NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams *ChannelParams, gatewayParams *GatewayParams, callbackUrl string) *Acquirer {
-
 	return &Acquirer{
-		ChannelParams: channelParams,
-		api:           api.NewClient(ctx, gatewayParams.Transport.BaseAddress, api.GetApi(gatewayParams.Transport.BaseAddress), gatewayParams.Transport.Timeout),
+		channelParams: channelParams,
+		api:           api.NewClient(ctx, gatewayParams.Transport.BaseAddress, gatewayParams.Transport.Timeout),
 		dbClient:      db,
 		callbackUrl:   "https://webhook.site/88d71697-ff27-49e8-8887-02faeeb1a166",
 	}
@@ -70,7 +68,6 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 		FiatAmount: txn.TxnAmountSrc,
 		FiatSymbol: txn.TxnCurrencySrc,
 		ExternalId: fmt.Sprintf("%d", txn.TxnId),
-		GateId:     a.ChannelParams.GateId,
 		WebhookUrl: a.callbackUrl,
 		Direction:  BUY,
 	}
@@ -109,7 +106,7 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 		FiatSymbol:      txn.TxnCurrencySrc,
 		CustomerName:    txn.Customer.FullName,
 		CustomerAddress: txn.PaymentData.Object.Credentials,
-		GateId:          a.ChannelParams.GateId,
+		GateId:          a.channelParams.GateId,
 		ExternalId:      fmt.Sprintf("%d", txn.TxnId),
 		WebhookUrl:      a.callbackUrl,
 		Direction:       SELL,
@@ -140,6 +137,11 @@ func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquir
 func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
 	logger := log.New("dev")
 
+	sign, err := a.api.GetSign()
+	if err != nil {
+		return nil, err
+	}
+
 	callbackBody, ok := txn.TxnInfo["callback"]
 
 	if !ok {
@@ -147,13 +149,13 @@ func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) 
 	}
 
 	callback := api.Callback{}
-	err := json.Unmarshal([]byte(callbackBody), &callback)
+	err = json.Unmarshal([]byte(callbackBody), &callback)
 	if err != nil {
 		logger.Error("Error unmarshalling callback body - ", callbackBody)
 		return nil, err
 	}
 
-	if callback.Sign != hex.EncodeToString(helper.GenerateHMAC(sha256.New, []byte(fmt.Sprintf("id=%s\nstatus=%s", callback.Id, callback.Status)), api.GetSign(a.ChannelParams.BaseAddress))) {
+	if callback.Sign != hex.EncodeToString(helper.GenerateHMAC(sha256.New, []byte(fmt.Sprintf("id=%s\nstatus=%s", callback.Id, callback.Status)), sign)) {
 		logger.Error("Invalid callback - ", callbackBody)
 		return nil, err
 	}
@@ -164,7 +166,6 @@ func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) 
 			"ps_error_code": callback.Description,
 		}
 	}
-	callback.Webhook_url = a.callbackUrl
 
 	return handleStatus(tr, callback.Status)
 }
