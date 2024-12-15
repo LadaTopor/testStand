@@ -28,9 +28,8 @@ type Transport struct {
 }
 
 type ChannelParams struct {
-	GateId   string `json:"gate_id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	GateId string            `json:"gate_id"`
+	Login  map[string]string `json:"login"`
 }
 
 type Acquirer struct {
@@ -47,9 +46,11 @@ const (
 
 // NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams *ChannelParams, gatewayParams *GatewayParams, callbackUrl string) *Acquirer {
+	fmt.Println("==========Login", channelParams.Login)
+
 	return &Acquirer{
 		channelParams: channelParams,
-		api:           api.NewClient(ctx, channelParams.Email, channelParams.Password, gatewayParams.Transport.BaseAddress, gatewayParams.Transport.Timeout),
+		api:           api.NewClient(ctx, channelParams.Login, gatewayParams.Transport.BaseAddress, gatewayParams.Transport.Timeout),
 		dbClient:      db,
 		callbackUrl:   "https://webhook.site/88d71697-ff27-49e8-8887-02faeeb1a166",
 	}

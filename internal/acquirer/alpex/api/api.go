@@ -12,8 +12,7 @@ import (
 type Client struct {
 	baseAddress string
 	client      *http.Client
-	email       string
-	password    string
+	login       map[string]string
 }
 
 const (
@@ -22,13 +21,12 @@ const (
 	apiEndpoint   = "v1/auth/login"
 )
 
-func NewClient(ctx context.Context, email, password, baseAddress string, timeout *int) *Client {
+func NewClient(ctx context.Context, login map[string]string, baseAddress string, timeout *int) *Client {
 	client := http.DefaultClient
 	return &Client{
 		baseAddress: baseAddress,
 		client:      client,
-		email:       email,
-		password:    password,
+		login:       login,
 	}
 }
 
@@ -79,12 +77,7 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 }
 
 func (c *Client) GetApi() (string, error) {
-	Login := map[string]string{
-		"email":    c.email,
-		"password": c.password,
-	}
-
-	jsonData, err := json.Marshal(Login)
+	jsonData, err := json.Marshal(c.login)
 	if err != nil {
 		return "", err
 	}
