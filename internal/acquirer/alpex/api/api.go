@@ -22,11 +22,6 @@ const (
 	apiEndpoint   = "v1/auth/login"
 )
 
-var Login = map[string]string{
-	"email":    "buyer@dev.alpex.app",
-	"password": "dev",
-}
-
 func NewClient(ctx context.Context, email, password, baseAddress string, timeout *int) *Client {
 	client := http.DefaultClient
 	return &Client{
@@ -84,7 +79,7 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 }
 
 func (c *Client) GetApi() (string, error) {
-	var Login = map[string]string{
+	Login := map[string]string{
 		"email":    c.email,
 		"password": c.password,
 	}

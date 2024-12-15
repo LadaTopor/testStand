@@ -19,7 +19,7 @@ type Request struct {
 	FiatAmount      int64  `json:"fiat_amount"`
 	Direction       string `json:"direction"`
 	WebhookUrl      string `json:"webhook_url"`
-	ExternalId      string `json:"external_id,omitempty"`
+	ExternalId      string `json:"external_id"`
 }
 
 type ResponsePaymentMethod struct {
