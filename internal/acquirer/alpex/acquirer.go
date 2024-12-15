@@ -18,14 +18,6 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-type gatewayMethod struct {
-	Id          string         `json:"id"`
-	GtwId       map[string]int `json:"gtw_id"`
-	PreferId    int            `json:"prefer_id"`
-	MapInputId  string         `json:"map_input_id"`
-	MapOutputId string         `json:"map_output_id"`
-}
-
 type GatewayParams struct {
 	Transport Transport `json:"transport"`
 }
@@ -36,7 +28,9 @@ type Transport struct {
 }
 
 type ChannelParams struct {
-	GateId string `json:"gate_id"`
+	GateId   string `json:"gate_id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type Acquirer struct {
@@ -55,7 +49,7 @@ const (
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams *ChannelParams, gatewayParams *GatewayParams, callbackUrl string) *Acquirer {
 	return &Acquirer{
 		channelParams: channelParams,
-		api:           api.NewClient(ctx, gatewayParams.Transport.BaseAddress, gatewayParams.Transport.Timeout),
+		api:           api.NewClient(ctx, channelParams.Email, channelParams.Password, gatewayParams.Transport.BaseAddress, gatewayParams.Transport.Timeout),
 		dbClient:      db,
 		callbackUrl:   "https://webhook.site/88d71697-ff27-49e8-8887-02faeeb1a166",
 	}

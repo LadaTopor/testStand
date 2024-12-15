@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"testStand/internal/acquirer/helper"
@@ -13,6 +12,8 @@ import (
 type Client struct {
 	baseAddress string
 	client      *http.Client
+	email       string
+	password    string
 }
 
 const (
@@ -21,11 +22,18 @@ const (
 	apiEndpoint   = "v1/auth/login"
 )
 
-func NewClient(ctx context.Context, baseAddress string, timeout *int) *Client {
+var Login = map[string]string{
+	"email":    "buyer@dev.alpex.app",
+	"password": "dev",
+}
+
+func NewClient(ctx context.Context, email, password, baseAddress string, timeout *int) *Client {
 	client := http.DefaultClient
 	return &Client{
 		baseAddress: baseAddress,
 		client:      client,
+		email:       email,
+		password:    password,
 	}
 }
 
@@ -42,7 +50,10 @@ func (c *Client) MakePayment(ctx context.Context, request *Request) (*Response, 
 
 // makeRequest
 func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endpoint string) error {
-	apiKey, _ := c.GetApi()
+	apiKey, err := c.GetApi()
+	if err != nil {
+		return err
+	}
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -73,9 +84,14 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 }
 
 func (c *Client) GetApi() (string, error) {
+	var Login = map[string]string{
+		"email":    c.email,
+		"password": c.password,
+	}
+
 	jsonData, err := json.Marshal(Login)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	var res map[string]string
@@ -87,7 +103,10 @@ func (c *Client) GetApi() (string, error) {
 		return "", err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, _ := c.client.Do(req)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return "", err
+	}
 
 	defer resp.Body.Close()
 
