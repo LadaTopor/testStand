@@ -12,7 +12,6 @@ import (
 
 type Client struct {
 	baseAddress string
-	apiKey      string
 	client      *http.Client
 }
 
@@ -43,7 +42,7 @@ func (c *Client) MakePayment(ctx context.Context, request *Request) (*Response, 
 
 // makeRequest
 func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endpoint string) error {
-	c.apiKey, _ = c.GetApi()
+	apiKey, _ := c.GetApi()
 
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -56,7 +55,7 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("Authorization", "Bearer "+apiKey)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
