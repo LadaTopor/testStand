@@ -12,7 +12,7 @@ import (
 type Client struct {
 	baseAddress string
 	client      *http.Client
-	login       map[string]string
+	login       Login
 }
 
 const (
@@ -21,12 +21,15 @@ const (
 	apiEndpoint   = "v1/auth/login"
 )
 
-func NewClient(ctx context.Context, login map[string]string, baseAddress string, timeout *int) *Client {
+func NewClient(ctx context.Context, email, password, baseAddress string, timeout *int) *Client {
 	client := http.DefaultClient
 	return &Client{
 		baseAddress: baseAddress,
 		client:      client,
-		login:       login,
+		login: Login{
+			Email:    email,
+			Password: password,
+		},
 	}
 }
 

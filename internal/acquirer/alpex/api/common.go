@@ -6,6 +6,11 @@ const (
 	Decline    = "CANCELLED"
 )
 
+type Login struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type Gate struct {
 	Id   string `json:"gate_id"`
 	Name string `json:"name"`
