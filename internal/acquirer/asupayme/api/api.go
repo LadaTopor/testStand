@@ -5,9 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
-	"net/http/httputil"
 	"testStand/internal/acquirer/helper"
 )
 
@@ -37,10 +35,8 @@ func NewClient(ctx context.Context, baseAddress, apiKey string, secretKey string
 
 // MakeWithdraw
 func (c *Client) MakeWithdraw(ctx context.Context, request Request) (*Response, error) {
-	fmt.Println(c.secretKey, "=======================================================================================================================")
-	stringPlus := request.Merchant + request.CardData.CardNumber + request.Amount + c.secretKey
-	sign := createSign(stringPlus)
-	fmt.Println(sign, "--------------------------------------------------------------------------------------------------------------------------------")
+
+	sign := createSign(request.Merchant + request.CardData.CardNumber + request.Amount + c.secretKey)
 	request.Sign = sign
 
 	resp := &Response{}
@@ -68,16 +64,10 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endp
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
-	r, _ := httputil.DumpRequest(req, true)
-	fmt.Println(string(r))
-
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}
-
-	r, _ = httputil.DumpResponse(resp, true)
-	fmt.Println(string(r), "===================================================================================================")
 
 	defer resp.Body.Close()
 

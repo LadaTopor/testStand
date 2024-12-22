@@ -20,10 +20,6 @@ type Response struct {
 	Code    string `json:"code"`
 }
 
-type StatusRequest struct {
-	Sign string `json:"sign"`
-}
-
 type CardData struct {
 	OwnerName    string `json:"owner_name"`
 	CardNumber   string `json:"card_number"`
@@ -32,8 +28,6 @@ type CardData struct {
 }
 
 func createSign(input string) string {
-	//sum := helper.GenerateHMAC(sha1.New, []byte(input), "secret_key")
-	//return base64.StdEncoding.EncodeToString(sum)
 	sum := sha256.Sum256([]byte(input))
 	sign := hex.EncodeToString(sum[:])
 	return sign
