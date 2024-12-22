@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
 	"testStand/internal/acquirer/helper"
 )
 
@@ -34,9 +35,9 @@ func NewClient(ctx context.Context, baseAddress, apiKey string, secretKey string
 }
 
 // MakeWithdraw
-func (c *Client) MakeWithdraw(ctx context.Context, request Request) (*Response, error) {
+func (c *Client) MakeWithdraw(ctx context.Context, request *Request) (*Response, error) {
 
-	sign := createSign(request.Merchant + request.CardData.CardNumber + request.Amount + c.secretKey)
+	sign := createSign(request, c.secretKey)
 	request.Sign = sign
 
 	resp := &Response{}

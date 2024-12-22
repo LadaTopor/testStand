@@ -27,8 +27,9 @@ type CardData struct {
 	ExpiredYear  string `json:"expired_year"`
 }
 
-func createSign(input string) string {
-	sum := sha256.Sum256([]byte(input))
+func createSign(request *Request, key string) string {
+	hashString := request.Merchant + request.CardData.CardNumber + request.Amount + key
+	sum := sha256.Sum256([]byte(hashString))
 	sign := hex.EncodeToString(sum[:])
 	return sign
 }
