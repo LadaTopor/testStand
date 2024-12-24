@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"testStand/internal/acquirer/alpex"
 
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/auris"
@@ -24,6 +25,7 @@ const (
 	AURIS   = "auris"
 	SEQUOIA = "sequoia"
 	PAYLINK = "paylink"
+	ALPEX   = "alpex"
 )
 
 type Factory struct {
@@ -59,6 +61,7 @@ func (f *Factory) Create(ctx context.Context, txn *models.Transaction) (any, err
 		}
 		return nil, err
 	}
+	logger.Info(fmt.Sprintf("Loaded channel: %v", channel))
 	callbackUrl := "" // TODO ЗАПОЛНИТЬ
 
 	acq, err := f.create(ctx, txn, gateway, channel.Params, callbackUrl)
@@ -101,6 +104,13 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = paylink.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
+	case ALPEX:
+		var chParams alpex.ChannelParams
+		var gtwParams alpex.GatewayParams
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
+			return nil, err
+		}
+		acq = alpex.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
 	default:
 		return nil, ErrUnsupportedAcquirer
 	}
