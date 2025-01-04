@@ -13,19 +13,20 @@ type CC5Request struct {
 	Email         string `xml:"Email"`
 	StoreType     string `xml:"storetype"`
 	Type          string `xml:"Type"`
-	CardNumber    string `xml:"Number"`
-	CardMonth     string `xml:"Ecom_Payment_Card_ExpDate_Month"`
-	CardYear      string `xml:"Ecom_Payment_Card_ExpDate_Year"`
+	Pan           string `xml:"Number"`
+	EcomCardMonth string `xml:"Ecom_Payment_Card_ExpDate_Month"`
+	EcomCardYear  string `xml:"Ecom_Payment_Card_ExpDate_Year"`
 	CVV           string `xml:"Cvv2Val"`
-	Total         int64  `xml:"Amount"`
+	Amount        string `xml:"Amount"`
 	Currency      string `xml:"Currency"`
 	PayerTxnId    string `xml:"PayerTxnId"`
+	Language      string `xml:"Language"`
 	ECI           string `xml:"PayerSecurityLevel"`
 	CAVV          string `xml:"PayerAuthenticationCode"`
+	Random        string `xml:"Random"`
 	HashAlgorithm string `xml:"HashAlgorithm"`
 	Encoding      string `xml:"encoding"`
 }
-
 type CC5Response struct {
 	OrderId        string `xml:"OrderId"`
 	Response       string `xml:"Response"`
