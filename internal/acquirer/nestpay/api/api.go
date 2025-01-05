@@ -6,10 +6,12 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/xml"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 
 	"testStand/internal/acquirer/helper"
@@ -38,8 +40,6 @@ func NewClient(ctx context.Context, storeKey, baseAddress string, timeout *int) 
 // MakePayment
 func (c *Client) MakePayment(ctx context.Context, request *CC5Request, authData url.Values) (*CC5Response, error) {
 
-	outResponse := &CC5Response{}
-
 	//Первый запрос
 	err := c.Auth(helper.JoinUrl(c.baseAddress, auth), http.MethodPost, request, authData)
 	if err != nil {
@@ -47,6 +47,8 @@ func (c *Client) MakePayment(ctx context.Context, request *CC5Request, authData 
 	}
 
 	//второй запрос
+	response := &CC5Response{}
+
 	body, err := xml.Marshal(request)
 	if err != nil {
 		return nil, err
@@ -64,16 +66,70 @@ func (c *Client) MakePayment(ctx context.Context, request *CC5Request, authData 
 	}
 	defer resp.Body.Close()
 
-	err = xml.NewDecoder(resp.Body).Decode(&outResponse)
+	err = xml.NewDecoder(resp.Body).Decode(&response)
 	if err != nil {
 		return nil, err
 	}
 
-	return outResponse, nil
+	return response, nil
 }
 
 func (c *Client) Auth(address, method string, r *CC5Request, authData url.Values) error {
 
+	hash := c.CreateHash(authData)
+	authData.Set("hash", hash)
+
+	req, err := http.NewRequest(method, address, bytes.NewBufferString(authData.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	res, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	params, err := url.ParseQuery(string(res))
+	if err != nil {
+		return err
+	}
+
+	mdStatus, err := strconv.Atoi(params.Get("mdStatus"))
+	if err != nil {
+		return err
+	}
+
+	if mdStatus > 1 && mdStatus <= 4 {
+		switch mdStatus {
+		case 0:
+			errors.New("Authentication failed")
+			break
+		case 6:
+			errors.New("No payments should be made")
+			break
+		default:
+			errors.New("MPI fallback")
+			break
+		}
+	}
+
+	r.Pan = params.Get("md")
+	r.PayerTxnId = params.Get("xid")
+	r.CAVV = params.Get("cavv")
+	r.ECI = params.Get("eci")
+
+	return nil
+}
+
+func (c *Client) CreateHash(authData url.Values) string {
 	keys := make([]string, 0, len(authData))
 	for key := range authData {
 		if key != "encoding" {
@@ -93,40 +149,8 @@ func (c *Client) Auth(address, method string, r *CC5Request, authData url.Values
 
 	rawHash := strings.Join(hashValues, "|") + "|" + c.storeKey
 
-	hash := CreateSign(rawHash)
-	authData.Set("hash", hash)
+	sum := helper.GenerateHash(sha512.New(), []byte(rawHash))
+	hash := base64.StdEncoding.EncodeToString(sum)
 
-	req, err := http.NewRequest(method, address, bytes.NewBufferString(authData.Encode()))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	res, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	params, err := url.ParseQuery(string(res))
-	if err != nil {
-		return err
-	}
-
-	r.Pan = params.Get("md")
-	r.PayerTxnId = params.Get("xid")
-	r.CAVV = params.Get("cavv")
-	r.ECI = params.Get("eci")
-
-	return nil
-}
-
-func CreateSign(input string) string {
-	sum := helper.GenerateHash(sha512.New(), []byte(input))
-	return base64.StdEncoding.EncodeToString(sum)
+	return hash
 }
