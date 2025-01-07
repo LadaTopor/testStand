@@ -47,7 +47,6 @@ func (c *Client) MakePayment(ctx context.Context, request *CC5Request, authData 
 	}
 
 	//второй запрос
-	response := &CC5Response{}
 
 	body, err := xml.Marshal(request)
 	if err != nil {
@@ -65,6 +64,8 @@ func (c *Client) MakePayment(ctx context.Context, request *CC5Request, authData 
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	response := &CC5Response{}
 
 	err = xml.NewDecoder(resp.Body).Decode(&response)
 	if err != nil {
@@ -110,14 +111,11 @@ func (c *Client) Auth(address, method string, r *CC5Request, authData url.Values
 	if mdStatus > 1 && mdStatus <= 4 {
 		switch mdStatus {
 		case 0:
-			errors.New("Authentication failed")
-			break
+			return errors.New("Authentication failed")
 		case 6:
-			errors.New("No payments should be made")
-			break
+			return errors.New("No payments should be made")
 		default:
-			errors.New("MPI fallback")
-			break
+			return errors.New("MPI fallback")
 		}
 	}
 
