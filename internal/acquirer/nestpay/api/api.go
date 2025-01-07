@@ -47,7 +47,6 @@ func (c *Client) MakePayment(ctx context.Context, request *CC5Request, authData 
 	}
 
 	//второй запрос
-
 	body, err := xml.Marshal(request)
 	if err != nil {
 		return nil, err
