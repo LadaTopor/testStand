@@ -17,9 +17,9 @@ type Client struct {
 }
 
 const (
-	auth      = "auth/login"
-	offer     = "offer/external"
-	signature = "user/generate-signature-key"
+	authEndpoint      = "auth/login"
+	offerEndpoint     = "offer/external"
+	signatureEndpoint = "user/generate-signature-key"
 )
 
 func NewClient(ctx context.Context, baseAddress, email, password string, timeout *int) *Client {
@@ -44,11 +44,10 @@ func (c *Client) MakeOffer(ctx context.Context, request *Request) (*Response, er
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, offer), bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, offerEndpoint), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
-
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
@@ -78,7 +77,7 @@ func (c *Client) Auth() (string, error) {
 		return "", err
 	}
 
-	post, err := c.client.Post(helper.JoinUrl(c.baseAddress, auth), "application/json", bytes.NewReader(body))
+	post, err := c.client.Post(helper.JoinUrl(c.baseAddress, authEndpoint), "application/json", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -91,7 +90,11 @@ func (c *Client) Auth() (string, error) {
 		return "", err // error EOF, because invalid url
 	}
 
-	return response["access_token"], err
+	if len(response["access_token"]) == 0 {
+		return "", err
+	}
+
+	return response["access_token"], nil
 }
 
 func (c *Client) Sign(id, status, signInCallback string) (bool, error) {
@@ -100,11 +103,10 @@ func (c *Client) Sign(id, status, signInCallback string) (bool, error) {
 		return false, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, signature), nil)
+	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, signatureEndpoint), nil)
 	if err != nil {
 		return false, err
 	}
-
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
 	resp, err := c.client.Do(req)
@@ -122,9 +124,5 @@ func (c *Client) Sign(id, status, signInCallback string) (bool, error) {
 
 	sign := CreateSign(id, status, response["signature_key"])
 
-	if signInCallback != sign {
-		return false, nil
-	}
-
-	return true, nil
+	return signInCallback != sign, nil
 }

@@ -126,7 +126,6 @@ func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) 
 	logger := log.New("dev")
 
 	callbackBody, ok := txn.TxnInfo["callback"]
-
 	if !ok {
 		return nil, errors.New("callback body is missing")
 	}
