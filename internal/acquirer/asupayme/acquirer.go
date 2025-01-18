@@ -97,7 +97,7 @@ func (a *Acquirer) FinalizePending(ctx context.Context, txn *models.Transaction)
 }
 
 // getGatewayMethod
-func getGatewayMethod(methodInternalId string, methods []gatewayMethod) (*gatewayMethod, error) {
+func getGatewayMethod( /* methodInternalId string, methods []gatewayMethod */ ) (*gatewayMethod, error) {
 	/* methodIdxInArray := slices.IndexFunc(methods, func(method gatewayMethod) bool {
 		return methodInternalId == method.ID
 	})
@@ -135,13 +135,13 @@ func (a *Acquirer) fillPayoutRequest(ctx context.Context, txn *models.Transactio
 }
 
 // fillPaymentRequest
-func (a *Acquirer) fillPaymentRequest(ctx context.Context, txn *models.Transaction, method *gatewayMethod, currID, preferId int) (*api.PayoutRequest, error) {
+func (a *Acquirer) fillPaymentRequest( /* ctx context.Context, txn *models.Transaction, method *gatewayMethod, currID, preferId int */ ) (*api.PayoutRequest, error) {
 	request := api.PayoutRequest{}
 	return &request, nil
 }
 
 // handlePayment
-func (a *Acquirer) handlePayment(ctx context.Context, txn *models.Transaction, response *api.Response, mapOutputKey string) (*acquirer.TransactionStatus, error) {
+func (a *Acquirer) handlePayment( /* ctx context.Context, txn *models.Transaction,  */ response *api.Response /* mapOutputKey string */) (*acquirer.TransactionStatus, error) {
 
 	return &acquirer.TransactionStatus{
 		Status: acquirer.REJECTED,
