@@ -36,27 +36,17 @@ type ChannelParams struct {
 }
 
 type Acquirer struct {
-	api      *api.Client
-	dbClient *repos.Repo
-
-	channelParams  ChannelParams
-	paymentMethods []gatewayMethod
-	payoutMethods  []gatewayMethod
-
-	percentageDifference *decimal.Decimal
-	callbackUrl          string
+	api           *api.Client
+	dbClient      *repos.Repo
+	channelParams ChannelParams
 }
 
 // NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParams, gatewayParams GatewayParams, callbackUrl string) *Acquirer {
 	return &Acquirer{
-		api:                  api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, channelParams.SecretKey, gatewayParams.Transport.Timeout),
-		dbClient:             db,
-		channelParams:        channelParams,
-		percentageDifference: gatewayParams.PercentageDifference,
-		callbackUrl:          callbackUrl,
-		paymentMethods:       gatewayParams.PaymentMethods,
-		payoutMethods:        gatewayParams.PayoutMethods,
+		api:           api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, channelParams.SecretKey, gatewayParams.Transport.Timeout),
+		dbClient:      db,
+		channelParams: channelParams,
 	}
 }
 
@@ -67,12 +57,7 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 
 // Payout
 func (a *Acquirer) Payout(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
-	// method, err := getGatewayMethod(txn.PayMethodId, a.payoutMethods)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	requestData, err := a.fillPayoutRequest(ctx, txn /* , method */)
+	requestData, err := a.fillPayoutRequest(ctx, txn)
 	if err != nil {
 		return nil, err
 	}
@@ -127,13 +112,13 @@ func getGatewayMethod(methodInternalId string, methods []gatewayMethod) (*gatewa
 }
 
 // fillPayoutRequest
-func (a *Acquirer) fillPayoutRequest(ctx context.Context, txn *models.Transaction /* , method *gatewayMethod */) (*api.Request, error) {
+func (a *Acquirer) fillPayoutRequest(ctx context.Context, txn *models.Transaction /* , method *gatewayMethod */) (*api.PayoutRequest, error) {
 	fullName := txn.Customer.FullName
 	if len(fullName) == 0 {
 		return nil, errors.New("customer full name is required data")
 	}
 
-	request := api.Request{
+	request := api.PayoutRequest{
 		MerchantId: strconv.Itoa(a.channelParams.MerchantId),
 		WithdrawId: fmt.Sprintf("%d", txn.TxnId),
 		Amount:     fmt.Sprintf("%d", txn.TxnAmountSrc),
@@ -150,8 +135,8 @@ func (a *Acquirer) fillPayoutRequest(ctx context.Context, txn *models.Transactio
 }
 
 // fillPaymentRequest
-func (a *Acquirer) fillPaymentRequest(ctx context.Context, txn *models.Transaction, method *gatewayMethod, currID, preferId int) (*api.Request, error) {
-	request := api.Request{}
+func (a *Acquirer) fillPaymentRequest(ctx context.Context, txn *models.Transaction, method *gatewayMethod, currID, preferId int) (*api.PayoutRequest, error) {
+	request := api.PayoutRequest{}
 	return &request, nil
 }
 

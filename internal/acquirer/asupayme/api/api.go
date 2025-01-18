@@ -36,14 +36,14 @@ func NewClient(ctx context.Context, baseAddress, apiKey string, secretKey string
 }
 
 // MakeDeposit
-func (c *Client) MakeDeposit(ctx context.Context, request Request) (*Response, error) {
+func (c *Client) MakeDeposit(ctx context.Context, request PayoutRequest) (*Response, error) {
 	resp := &Response{}
 
 	return resp, nil
 }
 
 // MakeWithdraw
-func (c *Client) MakeWithdraw(ctx context.Context, request Request) (*Response, error) {
+func (c *Client) MakeWithdraw(ctx context.Context, request PayoutRequest) (*Response, error) {
 	sign := createSign(request.MerchantId + request.CardData.CardNumber + request.Amount + c.secretKey)
 	request.Sign = sign
 

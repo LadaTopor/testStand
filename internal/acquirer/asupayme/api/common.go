@@ -19,7 +19,7 @@ type CardData struct {
 	ExpYear    string `json:"expired_year"`
 }
 
-type Request struct {
+type PayoutRequest struct {
 	MerchantId string   `json:"merchant"`
 	WithdrawId string   `json:"withdraw_id"`
 	CardData   CardData `json:"card_data"`
