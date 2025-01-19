@@ -92,5 +92,6 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, sign
 	if err != nil {
 		return nil // error EOF, because invalid url
 	}
+
 	return nil
 }
