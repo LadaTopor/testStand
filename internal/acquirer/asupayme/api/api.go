@@ -5,16 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"testStand/internal/acquirer/helper"
 )
 
 // Endpoints
 const (
-	PaymentEndpoint = "payment"
-	PayoutEndpoint  = "withdraw"
-	StatusEndpoint  = "status"
+	PayoutEndpoint = "withdraw"
 )
 
 type Client struct {
@@ -43,23 +40,15 @@ func (c *Client) MakeDeposit(ctx context.Context, request PayoutRequest) (*Respo
 }
 
 // MakeWithdraw
-func (c *Client) MakeWithdraw(ctx context.Context, request PayoutRequest) (*Response, error) {
-	sign := createSign(request.MerchantId + request.CardData.CardNumber + request.Amount + c.secretKey)
+func (c *Client) MakeWithdraw(ctx context.Context, request PayoutRequest, apiKey string) (*Response, error) {
+	sign := createSign(request, c.secretKey)
 	request.Sign = sign
 
 	resp := &Response{}
-	err := c.makeRequest(ctx, request, resp, request.ApiKey, PayoutEndpoint)
+	err := c.makeRequest(ctx, request, resp, apiKey, PayoutEndpoint)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(resp)
-
-	return resp, nil
-}
-
-// CheckStatus
-func (c *Client) CheckStatus(ctx context.Context, request StatusRequest) (*Response, error) {
-	resp := &Response{}
 
 	return resp, nil
 }
@@ -70,8 +59,6 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, apiK
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(body))
-
 	reader := bytes.NewReader(body)
 
 	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, endpoint), reader)
@@ -80,18 +67,15 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, apiK
 	}
 
 	req.Header = http.Header{
-		"Host":           {"185.230.143.210"},
-		"Authorization":  {"Bearer " + apiKey},
-		"Content-Type":   {"application/json"},
-		"Content-Length": {fmt.Sprintf("%d", reader.Size())},
+		"Authorization": {"Bearer " + apiKey},
+		"Content-Type":  {"application/json"},
 	}
-
-	fmt.Println(req.Header)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= http.StatusInternalServerError {
