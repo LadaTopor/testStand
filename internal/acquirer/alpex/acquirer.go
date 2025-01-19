@@ -9,10 +9,16 @@ import (
 	"github.com/labstack/gommon/log"
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/alpex/api"
+	"testStand/internal/acquirer/helper"
 	"testStand/internal/models"
 	"testStand/internal/repos"
 
 	"github.com/shopspring/decimal"
+)
+
+const (
+	DirectionBuy  = "BUY"
+	DirectionSell = "SELL"
 )
 
 type Transport struct {
@@ -26,31 +32,23 @@ type GatewayParams struct {
 }
 
 type ChannelParams struct {
-	ApiKey   string `json:"api_key"`
 	Id       string `json:"id"`
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }
 
 type Acquirer struct {
-	api      *api.Client
-	dbClient *repos.Repo
-
-	channelParams ChannelParams
-
+	api                  *api.Client
+	dbClient             *repos.Repo
+	channelParams        ChannelParams
 	percentageDifference *decimal.Decimal
 	callbackUrl          string
-}
-
-func (a *Acquirer) FinalizePending(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 // NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParams, gatewayParams GatewayParams, callbackUrl string) *Acquirer {
 	return &Acquirer{
-		api:                  api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, channelParams.Id, channelParams.Login, channelParams.Password),
+		api:                  api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.Login, channelParams.Password),
 		dbClient:             db,
 		channelParams:        channelParams,
 		percentageDifference: gatewayParams.PercentageDifference,
@@ -62,11 +60,11 @@ func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParam
 func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
 
 	requestBody := &api.Request{
-		ExternalId: strconv.FormatInt(txn.TxnId, 10), // fmt.Sprintf("%d", txn.ExId)
-		Id:         strconv.FormatInt(txn.TxnId, 10), // fmt.Sprintf("%d", txn.ExId)
+		ExternalId: strconv.FormatInt(txn.TxnId, 10),
+		Id:         strconv.FormatInt(txn.TxnId, 10),
 		Symbol:     txn.TxnCurrencySrc,
 		Amount:     txn.TxnAmountSrc,
-		Direction:  "BUY",
+		Direction:  DirectionBuy,
 		FullName:   txn.Customer.FullName,
 		WebhookUrl: "https://webhook.site/b8e353ac-c5b9-4938-863f-3d23a1285130",
 	}
@@ -147,7 +145,7 @@ func (a *Acquirer) fillPayoutRequest(ctx context.Context, txn *models.Transactio
 		Credentials:     txn.PaymentData.Object.Credentials,
 		FullName:        fullName,
 		CustomerAddress: txn.Customer.Address,
-		Direction:       "SELL",
+		Direction:       DirectionSell,
 		GateId:          a.channelParams.Id,
 		WebhookUrl:      "https://webhook.site/b8e353ac-c5b9-4938-863f-3d23a1285130",
 	}
@@ -174,6 +172,14 @@ func (a *Acquirer) HandleCallback(ctx context.Context, txn *models.Transaction) 
 
 	tr := &acquirer.TransactionStatus{}
 
+	Key, err := a.api.MakeSignatureKey(ctx)
+	Sign := a.api.CreateSign(callback.Id, callback.Status, Key.SignatureKey)
+
+	if callback.Signature != Sign {
+		logger.Error("Invalid Callback - ", err)
+		return tr, nil
+	}
+
 	return handleStatus(tr, callback.Status)
 }
 
@@ -191,4 +197,9 @@ func handleStatus(tr *acquirer.TransactionStatus, status string) (*acquirer.Tran
 		tr.Status = acquirer.PENDING
 		return tr, nil
 	}
+}
+
+// FinalizePending
+func (a *Acquirer) FinalizePending(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
+	return helper.UnsupportedMethodError()
 }

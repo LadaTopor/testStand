@@ -48,4 +48,5 @@ type Alpex struct {
 	Id         string `json:"_id"`
 	ExternalId string `json:"external_id"`
 	Status     string `json:"status"`
+	Signature  string `json:"signature"`
 }

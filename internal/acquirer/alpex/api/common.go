@@ -1,11 +1,6 @@
 package api
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
-
 	"github.com/shopspring/decimal"
 )
 
@@ -33,6 +28,7 @@ type Request struct {
 type Response struct {
 	Id              string          `json:"_id"`
 	ExternalId      string          `json:"external_id"`
+	PaymentMethod   PaymentMethod   `json:"payment_method"`
 	Direction       string          `json:"direction"`
 	Amount          decimal.Decimal `json:"amount"`
 	AmountFiat      decimal.Decimal `json:"amount_fiat"`
@@ -40,17 +36,6 @@ type Response struct {
 	ApproveCode     string          `json:"approve_code"`
 	BeneficiaryName string          `json:"beneficiary_name"`
 	Sign            string          `json:"sign"`
-}
-
-type PaymentResponse struct {
-	Id            string          `json:"_id"`
-	ExternalId    string          `json:"external_id"`
-	PaymentMethod PaymentMethod   `json:"payment_method"`
-	Amount        decimal.Decimal `json:"amount"`
-	AmountFiat    decimal.Decimal `json:"amount_fiat"`
-	Status        string          `json:"status"`
-	ApproveCode   string          `json:"approve_code"`
-	Sign          string          `json:"sign"`
 }
 
 type PaymentMethod struct {
@@ -65,25 +50,17 @@ type Gate struct {
 }
 
 type Callback struct {
-	Id     string `json:"_id"`
-	Status string `json:"status"`
-	Sign   string `json:"sign"`
+	Id        string `json:"_id"`
+	Status    string `json:"status"`
+	Signature string `json:"signature"`
 }
 
 type User struct {
-	email    string `json:"email"`
-	password string `json:"password"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
-type UserSign struct {
+type UserSignToken struct {
 	SignatureKey string `json:"signature_key"`
-}
-
-func createSign(request *Request, key string) string {
-	offerString := fmt.Sprintf(`id=%d\nstatus=%s`, request.Id, request.Status) //до \ убрал >
-	hmac := hmac.New(sha256.New, []byte(key))
-	hmac.Write([]byte(offerString))
-	sign := hex.EncodeToString(hmac.Sum(nil))
-
-	return sign
+	AccessToken  string `json:"access_token"`
 }

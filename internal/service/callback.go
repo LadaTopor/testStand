@@ -169,7 +169,6 @@ func alpexCallbackMapper(payRepo *repos.Repo, gtwAdapterId string, content []byt
 		logger.Error("callback body unmarshalling error - ", err)
 		return 0, nil, err
 	}
-	fmt.Println(callback.Id, callback.Status)
 	txnId, err := strconv.ParseInt(callback.ExternalId, 10, 64)
 	if err != nil {
 		logger.Error("error parsing txnId - ", err)
