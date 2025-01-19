@@ -66,7 +66,7 @@ type Response struct {
 
 type StatusResponse struct {
 	Type       string          `json:"type"`
-	ID         int             `json:"ID"`
+	ID         int             `json:"Id"`
 	CurrID     int             `json:"currID"`
 	Amount     decimal.Decimal `json:"amount"`
 	Label      string          `json:"label"`

@@ -27,6 +27,7 @@ var callbackMappersMap = map[string]*callbackMapper{
 	"paylink": newCallbackMapper(paylinkCallbackMapper, http.MethodPost),
 	"auris":   newCallbackMapper(aurisCallbackMapper, http.MethodPost),
 	"sequoia": newCallbackMapper(sequoiaCallbackMapper, http.MethodPost),
+	"alpex":   newCallbackMapper(alpexCallbackMapper, http.MethodPost),
 }
 
 func newCallbackMapper(handler callbackMapperFunc, methods ...string) *callbackMapper {
@@ -152,6 +153,24 @@ func paylinkCallbackMapper(payRepo *repos.Repo, gtwAdapterId string, content []b
 	}
 
 	txnId, err := strconv.ParseInt(callback.UserRef, 10, 64)
+	if err != nil {
+		logger.Error("error parsing txnId - ", err)
+		return 0, nil, err
+	}
+
+	return txnId, callback, nil
+}
+
+func alpexCallbackMapper(payRepo *repos.Repo, gtwAdapterId string, content []byte, query string, headers http.Header) (int64, any, error) {
+	logger := log.New("dev")
+
+	callback := Alpex{}
+	if err := json.Unmarshal(content, &callback); err != nil {
+		logger.Error("callback body unmarshalling error - ", err)
+		return 0, nil, err
+	}
+	fmt.Println(callback.Id, callback.Status)
+	txnId, err := strconv.ParseInt(callback.ExternalId, 10, 64)
 	if err != nil {
 		logger.Error("error parsing txnId - ", err)
 		return 0, nil, err

@@ -40,7 +40,6 @@ type Acquirer struct {
 	callbackUrl          string
 }
 
-// NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParams, gatewayParams GatewayParams, callbackUrl string) *Acquirer {
 	return &Acquirer{
 		api:                  api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.ApiKey, channelParams.SecretKey),
