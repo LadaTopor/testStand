@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"testStand/internal/acquirer/nestpay"
 
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/alpex"
@@ -28,6 +29,7 @@ const (
 	PAYLINK  = "paylink"
 	ASUPAYME = "asupayme"
 	ALPEX    = "alpex"
+	NESTPAY  = "nestpay"
 )
 
 type Factory struct {
@@ -119,6 +121,13 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = asupayme.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams)
+	case NESTPAY:
+		var chParams nestpay.ChannelParams
+		var gtwParams nestpay.GatewayParams
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
+			return nil, err
+		}
+		acq = nestpay.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams)
 	default:
 		return nil, ErrUnsupportedAcquirer
 	}
