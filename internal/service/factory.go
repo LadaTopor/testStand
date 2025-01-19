@@ -8,6 +8,8 @@ import (
 	"net/url"
 
 	"testStand/internal/acquirer"
+	"testStand/internal/acquirer/alpex"
+	"testStand/internal/acquirer/asupayme"
 	"testStand/internal/acquirer/auris"
 	"testStand/internal/acquirer/paylink"
 	"testStand/internal/acquirer/sequoia"
@@ -21,9 +23,11 @@ import (
 var ErrUnsupportedAcquirer = errors.New("unsupported acquirer")
 
 const (
-	AURIS   = "auris"
-	SEQUOIA = "sequoia"
-	PAYLINK = "paylink"
+	AURIS    = "auris"
+	SEQUOIA  = "sequoia"
+	PAYLINK  = "paylink"
+	ASUPAYME = "asupayme"
+	ALPEX    = "alpex"
 )
 
 type Factory struct {
@@ -101,6 +105,20 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = paylink.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
+	case ASUPAYME:
+		var chParams asupayme.ChannelParams
+		var gtwParams asupayme.GatewayParams
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
+			return nil, err
+		}
+		acq = asupayme.NewAcquirer(ctx, f.dbClient, chParams, gtwParams, callbackUrl)
+	case ALPEX:
+		var chParams alpex.ChannelParams
+		var gtwParams alpex.GatewayParams
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
+			return nil, err
+		}
+		acq = alpex.NewAcquirer(ctx, f.dbClient, chParams, gtwParams, callbackUrl)
 	default:
 		return nil, ErrUnsupportedAcquirer
 	}
