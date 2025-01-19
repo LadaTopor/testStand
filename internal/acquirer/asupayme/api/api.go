@@ -66,10 +66,8 @@ func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, apiK
 		return err
 	}
 
-	req.Header = http.Header{
-		"Authorization": {"Bearer " + apiKey},
-		"Content-Type":  {"application/json"},
-	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.client.Do(req)
 	if err != nil {
