@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"database/sql"
-	"github.com/labstack/gommon/log"
 	"net/http"
 	"time"
+
+	"github.com/labstack/gommon/log"
 
 	"testStand/internal/models"
 	"testStand/internal/repos"
@@ -50,7 +51,6 @@ func (s *Service) CreatePaymentTransaction(c echo.Context) error {
 }
 
 func (s *Service) createTransaction(req *Request, txnType models.Transaction_Type) *Response {
-
 	txn := &models.Transaction{
 		TxnId:          int64(uuid.New().ID()),
 		ParentTxn:      nil,
