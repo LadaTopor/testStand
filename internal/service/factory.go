@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"testStand/internal/acquirer"
+	"testStand/internal/acquirer/aplex"
 	"testStand/internal/acquirer/asupayme"
 	"testStand/internal/acquirer/auris"
 	"testStand/internal/acquirer/paylink"
@@ -26,6 +27,7 @@ const (
 	SEQUOIA  = "sequoia"
 	PAYLINK  = "paylink"
 	ASUPAYME = "asupayme"
+	APLEX    = "aplex"
 )
 
 type Factory struct {
@@ -110,6 +112,13 @@ func (f *Factory) create(ctx context.Context, txn *models.Transaction, gateway *
 			return nil, err
 		}
 		acq = asupayme.NewAcquirer(ctx, f.dbClient, chParams, gtwParams, callbackUrl)
+	case APLEX:
+		var chParams aplex.ChannelParams
+		var gtwParams aplex.GatewayParams
+		if err = f.unmarshalParams(gateway.ParamsJson, channelParams.Credentials, &gtwParams, &chParams); err != nil {
+			return nil, err
+		}
+		acq = aplex.NewAcquirer(ctx, f.dbClient, &chParams, &gtwParams, callbackUrl)
 	default:
 		return nil, ErrUnsupportedAcquirer
 	}
