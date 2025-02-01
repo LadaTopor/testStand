@@ -56,6 +56,9 @@ type PaymentData struct {
 	Object struct {
 		Credentials string  `json:"credentials"`
 		Bank        *string `json:"bank"`
+		ExpYear     string  `json:"exp_year"`
+		ExpMonth    string  `json:"exp_month"`
+		Cvv         string  `json:"cvv"`
 	} `json:"object"`
 }
 
