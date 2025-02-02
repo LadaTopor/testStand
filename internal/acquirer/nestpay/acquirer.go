@@ -2,6 +2,7 @@ package nestpay
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"testStand/internal/acquirer"
@@ -24,10 +25,11 @@ type GatewayParams struct {
 }
 
 type ChannelParams struct {
-	Id       string `json:"id"`
+	ClientId string `json:"clientId"`
 	Name     string `json:"name"`
 	Password string `json:"password"`
 	StoreKey string `json:"store_key"`
+	Currency string `json:"currency"`
 }
 
 type Acquirer struct {
@@ -41,7 +43,7 @@ type Acquirer struct {
 // NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParams, gatewayParams GatewayParams, callbackUrl string) *Acquirer {
 	return &Acquirer{
-		api:                  api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.Name, channelParams.Password, channelParams.StoreKey),
+		api:                  api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.Currency),
 		dbClient:             db,
 		channelParams:        channelParams,
 		percentageDifference: gatewayParams.PercentageDifference,
@@ -53,10 +55,10 @@ func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParam
 func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
 
 	requestBody := &api.Request{
-		ClientId:                        a.channelParams.Id,
+		ClientId:                        a.channelParams.ClientId,
 		StoreType:                       "3d_pay",
 		Amount:                          txn.TxnAmountSrc,
-		Currency:                        txn.TxnCurrencySrc,
+		Currency:                        a.channelParams.Currency,
 		TranType:                        "Auth",
 		Lang:                            "tr",
 		Rnd:                             "randomString",
@@ -67,27 +69,31 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 		Oid:                             strconv.FormatInt(txn.TxnId, 10),
 		HashAlgorithm:                   "ver3",
 		Encoding:                        "utf-8",
-		Hash:                            "",
 	}
-
-	hash := a.api.CreateSign(requestBody, a.channelParams.StoreKey)
-	requestBody.Hash = hash
+	var err error
+	requestBody.Hash, err = a.api.CreateSign(requestBody, a.channelParams.StoreKey)
+	if err != nil {
+		return nil, err
+	}
 
 	paymentResponse, err := a.api.MakePayment(ctx, requestBody)
 	if err != nil {
 		return nil, err
 	}
+	if len(paymentResponse.ErrMsg) != 0 {
+		return nil, errors.New(paymentResponse.ErrMsg)
+	}
 
 	statusRequest := &api.StatusRequest{
 		Name:                    a.channelParams.Name,
 		Password:                a.channelParams.Password,
-		ClientId:                a.channelParams.Id,
+		ClientId:                a.channelParams.ClientId,
 		IpAddress:               paymentResponse.ClientIP,
 		Oid:                     paymentResponse.Oid,
 		Type:                    "Auth",
 		Number:                  paymentResponse.Md,
 		Amount:                  strconv.FormatInt(txn.TxnAmountSrc, 10),
-		Currency:                txn.TxnCurrencySrc,
+		Currency:                a.channelParams.Currency,
 		PayerTxnId:              paymentResponse.XId,
 		PayerSecurityLevel:      paymentResponse.Eci,
 		PayerAuthenticationCode: paymentResponse.Cavv,
@@ -107,15 +113,10 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 		status := &acquirer.TransactionStatus{Status: acquirer.REJECTED}
 		if len(statusResponse.ErrMsg) > 0 {
 			status.Info = map[string]string{
-				"ps_error_message": helper.DecodeUnicode(statusResponse.ErrMsg),
+				"ps_error_message": statusResponse.ErrMsg,
 			}
 		}
 		return status, nil
-	case api.StatusError:
-		return &acquirer.TransactionStatus{
-			Status:   acquirer.UNSPECIFIED,
-			TxnError: acquirer.NewTxnError(5003, statusResponse.ErrMsg),
-		}, nil
 	default:
 		return &acquirer.TransactionStatus{
 			Status: acquirer.PENDING,

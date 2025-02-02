@@ -12,9 +12,10 @@ import (
 	"sort"
 	"strings"
 
+	"testStand/internal/acquirer/helper"
+
 	"github.com/go-playground/form"
 	"github.com/google/go-querystring/query"
-	"testStand/internal/acquirer/helper"
 )
 
 // Endpoints
@@ -25,20 +26,16 @@ const (
 
 type Client struct {
 	baseAddress string
-	name        string
-	password    string
-	storeKey    string
+	currency    string
 	client      *http.Client
 }
 
-func NewClient(ctx context.Context, baseAddress, name string, password string, key string) *Client {
+func NewClient(ctx context.Context, baseAddress, currency string) *Client {
 
 	client := http.DefaultClient
 	return &Client{
 		baseAddress: baseAddress,
-		name:        name,
-		password:    password,
-		storeKey:    key,
+		currency:    currency,
 		client:      client,
 	}
 }
@@ -46,56 +43,64 @@ func NewClient(ctx context.Context, baseAddress, name string, password string, k
 func (c *Client) MakePayment(ctx context.Context, request *Request) (*PaymentResponse, error) {
 
 	resp := &PaymentResponse{}
-	err := c.makeRequest(ctx, request, resp, PaymentEndpoint)
+
+	body, err := query.Values(request)
+
+	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, PaymentEndpoint), bytes.NewBufferString(body.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	response, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	decoder := form.NewDecoder()
+
+	defer response.Body.Close()
+
+	byteRespBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	values, err := url.ParseQuery(string(byteRespBody))
+	if err != nil {
+		return nil, err
+	}
+
+	err = decoder.Decode(&resp, values)
 	if err != nil {
 		return nil, err
 	}
 
 	return resp, nil
-}
-
-func (c *Client) makeRequest(ctx context.Context, payload, outResponse any, endpoint string) error {
-
-	body, err := query.Values(payload)
-
-	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, endpoint), bytes.NewBufferString(body.Encode()))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	decoder := form.NewDecoder()
-
-	defer resp.Body.Close()
-
-	Body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil
-	}
-
-	values, err := url.ParseQuery(string(Body))
-	if err != nil {
-		return nil
-	}
-
-	err = decoder.Decode(&outResponse, values)
-	if err != nil {
-		return nil
-	}
-
-	return nil
 }
 
 func (c *Client) CheckStatus(ctx context.Context, request *StatusRequest) (*StatusResponse, error) {
 
 	resp := &StatusResponse{}
-	err := c.makeStatusRequest(ctx, request, resp, StatusEndpoint)
+
+	xmlBody, err := xml.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, StatusEndpoint), bytes.NewReader(xmlBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/xml")
+
+	response, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	err = xml.NewDecoder(response.Body).Decode(&resp)
 	if err != nil {
 		return nil, err
 	}
@@ -103,42 +108,11 @@ func (c *Client) CheckStatus(ctx context.Context, request *StatusRequest) (*Stat
 	return resp, nil
 }
 
-func (c *Client) makeStatusRequest(ctx context.Context, payload, outResponse any, endpoint string) error {
-
-	xmlBody, err := xml.Marshal(payload)
-
-	req, err := http.NewRequest(http.MethodPost, helper.JoinUrl(c.baseAddress, endpoint), bytes.NewReader(xmlBody))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/xml")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil
-	}
-
-	err = xml.Unmarshal(body, &outResponse)
-	if err != nil {
-		return nil
-	}
-
-	return nil
-}
-
-func (c *Client) CreateSign(request *Request, storeKey string) string {
+func (c *Client) CreateSign(request *Request, storeKey string) (string, error) {
 
 	req, err := query.Values(request)
 	if err != nil {
-		return "bababa bebebe"
+		return "bababa bebebe", err
 	}
 
 	var sortedKeys []string
@@ -163,7 +137,7 @@ func (c *Client) CreateSign(request *Request, storeKey string) string {
 
 	hashVal := hashDataBuilder.String()
 	hash := sha512.Sum512([]byte(hashVal))
-	OkSign := base64.StdEncoding.EncodeToString(hash[:])
+	hashString := base64.StdEncoding.EncodeToString(hash[:])
 
-	return OkSign
+	return hashString, err
 }
