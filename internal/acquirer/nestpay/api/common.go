@@ -5,7 +5,6 @@ import "encoding/xml"
 const (
 	StatusApproved = "Approve"
 	StatusDeclined = "Declined"
-	StatusError    = "Error"
 )
 
 type Request struct {
