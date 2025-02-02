@@ -66,7 +66,7 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 		Amount:     txn.TxnAmountSrc,
 		Direction:  DirectionBuy,
 		FullName:   txn.Customer.FullName,
-		WebhookUrl: "https://webhook.site/b8e353ac-c5b9-4938-863f-3d23a1285130",
+		WebhookUrl: "https://webhook.site/f4368fb0-9d4d-4400-90fe-506b7271996c",
 	}
 
 	response, err := a.api.MakePayment(ctx, requestBody)
