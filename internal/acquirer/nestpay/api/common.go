@@ -54,10 +54,6 @@ type CC5Response struct {
 	} `xml:"Extra"`
 }
 
-// amount|BillToCompany|BillToName|callbackUrl
-// |clientid|currency|failUrl|hashAlgorithm|Instalment
-// |lang|okurl|refreshtime|rnd|storetype|TranType|storeKey
-
 func createHash(params url.Values, storeKey string) string {
 	keys := make([]string, 0, len(params))
 
