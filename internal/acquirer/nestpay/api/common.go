@@ -6,7 +6,20 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+
 	"testStand/internal/acquirer/helper"
+)
+
+const (
+	AuthStatusRejected     = 0
+	AuthStatusSuccessFull  = 1
+	AuthStatusSuccessHalf  = 2
+	AuthStatusOk           = 3
+	AuthStatusOkHalf       = 4
+	AuthStatusNotAvailable = 5
+	AuthStatusFailed       = 6
+	AuthStatusError        = 7
+	AuthStatusSystemError  = 8
 )
 
 const (
@@ -54,11 +67,7 @@ type CC5Response struct {
 	} `xml:"Extra"`
 }
 
-// amount|BillToCompany|BillToName|callbackUrl
-// |clientid|currency|failUrl|hashAlgorithm|Instalment
-// |lang|okurl|refreshtime|rnd|storetype|TranType|storeKey
-
-func createHash(params url.Values, storeKey string) string {
+func CreateHash(params url.Values, storeKey string) string {
 	keys := make([]string, 0, len(params))
 
 	for key := range params {

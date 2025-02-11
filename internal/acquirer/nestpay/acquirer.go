@@ -2,7 +2,11 @@ package nestpay
 
 import (
 	"context"
+	"errors"
+	"math/rand"
+	"net/url"
 	"strconv"
+
 	"testStand/internal/acquirer"
 	"testStand/internal/acquirer/helper"
 	"testStand/internal/acquirer/nestpay/api"
@@ -36,8 +40,6 @@ type Acquirer struct {
 // NewAcquirer
 func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParams, gatewayParams GatewayParams, callbackUrl string) *Acquirer {
 	return &Acquirer{
-		//! sadasdsad
-
 		api:           api.NewClient(ctx, gatewayParams.Transport.BaseAddress, channelParams.StoreKey, channelParams.Currency, gatewayParams.Transport.Timeout),
 		dbClient:      db,
 		channelParams: channelParams,
@@ -46,10 +48,31 @@ func NewAcquirer(ctx context.Context, db *repos.Repo, channelParams ChannelParam
 
 // Payment
 func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acquirer.TransactionStatus, error) {
-	requestData, err := a.fillPaymentRequest(ctx, txn)
+	requestData, authParams, err := a.fillPaymentRequest(ctx, txn)
 	if err != nil {
 		return nil, err
 	}
+
+	authResponse, err := a.api.MakeAuth(ctx, authParams)
+	if err != nil {
+		return nil, err
+	}
+
+	respErr := handleAuthResponse(authResponse)
+	if respErr != nil {
+		return &acquirer.TransactionStatus{
+			Status: acquirer.REJECTED,
+			Info: map[string]string{
+				"ps_error_code": respErr.Error(),
+			},
+		}, nil
+	}
+
+	requestData.PayerCAVV = authResponse.Get("cavv")
+	requestData.PayerECI = authResponse.Get("eci")
+	requestData.PayerXID = authResponse.Get("xid")
+	requestData.CardNumber = authResponse.Get("md")
+	requestData.TransId = authResponse.Get("TransID")
 
 	response, err := a.api.MakePayment(ctx, requestData)
 	if err != nil {
@@ -69,7 +92,7 @@ func (a *Acquirer) Payment(ctx context.Context, txn *models.Transaction) (*acqui
 }
 
 // fillPaymentRequest
-func (a *Acquirer) fillPaymentRequest(ctx context.Context, txn *models.Transaction) (*api.CC5Request, error) {
+func (a *Acquirer) fillPaymentRequest(ctx context.Context, txn *models.Transaction) (*api.CC5Request, url.Values, error) {
 	request := &api.CC5Request{
 		ApiName:     a.channelParams.ApiName,
 		ApiPassword: a.channelParams.ApiPassword,
@@ -83,8 +106,29 @@ func (a *Acquirer) fillPaymentRequest(ctx context.Context, txn *models.Transacti
 		ExpYear:     txn.PaymentData.Object.ExpYear,
 		ExpMonth:    txn.PaymentData.Object.ExpMonth,
 	}
+	authParams := url.Values{
+		"clientid":                        {request.ClientId},
+		"storetype":                       {"3d_pay"},
+		"oid":                             {request.TxnId},
+		"trantype":                        {request.TransType},
+		"amount":                          {strconv.Itoa(int(request.Amount))},
+		"currency":                        {a.channelParams.Currency},
+		"lang":                            {"en"},
+		"rnd":                             {randomString(10)},
+		"pan":                             {request.CardNumber},
+		"Ecom_Payment_Card_ExpDate_Year":  {request.ExpYear},
+		"Ecom_Payment_Card_ExpDate_Month": {request.ExpMonth},
+		"cv2":                             {request.CVV},
+		"encoding":                        {"utf-8"},
+		"hashAlgorithm":                   {"ver3"},
+	}
+	hash := api.CreateHash(authParams, a.channelParams.StoreKey)
+	if len(hash) == 0 {
+		return nil, nil, errors.New("hash is empty")
+	}
+	authParams.Add("hash", hash)
 
-	return request, nil
+	return request, authParams, nil
 }
 
 // Payout
@@ -114,4 +158,36 @@ func handleStatus(tr *acquirer.TransactionStatus, status string) (*acquirer.Tran
 		tr.Status = acquirer.PENDING
 		return tr, nil
 	}
+}
+
+func handleAuthResponse(authResponse url.Values) error {
+	if len(authResponse.Get("ErrMsg")) != 0 {
+		return errors.New(authResponse.Get("ErrMsg"))
+	}
+
+	status, err := strconv.Atoi(authResponse.Get("mdStatus"))
+	if err != nil {
+		return err
+	}
+
+	if status < api.AuthStatusSuccessFull || status > api.AuthStatusOkHalf {
+		switch status {
+		case api.AuthStatusRejected, api.AuthStatusFailed:
+			return errors.New("3d secure authentication failed")
+		case api.AuthStatusNotAvailable, api.AuthStatusError, api.AuthStatusSystemError:
+			return errors.New("mpi fallback")
+		default:
+			return errors.New("status is not full or half 3d secure")
+		}
+	}
+	return nil
+}
+
+func randomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
 }

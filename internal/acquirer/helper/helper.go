@@ -6,9 +6,10 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"hash"
-	"math/rand"
+
 	"net/url"
 	"strconv"
+
 	"testStand/internal/acquirer"
 )
 
@@ -16,15 +17,6 @@ import (
 func JoinUrl(baseUrl string, endpointParts ...string) string {
 	path, _ := url.JoinPath(baseUrl, endpointParts...)
 	return path
-}
-
-func RandomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(b)
 }
 
 // GenerateSHA1Hash.
