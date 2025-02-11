@@ -6,10 +6,8 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"hash"
-
 	"net/url"
 	"strconv"
-
 	"testStand/internal/acquirer"
 )
 
